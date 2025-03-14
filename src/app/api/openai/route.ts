@@ -6,8 +6,23 @@ import {
   summarizeInteraction,
 } from "@/lib/openai";
 
+// Check if OpenAI API key is configured
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+
+if (!OPENAI_API_KEY) {
+  console.error("OPENAI_API_KEY is not configured in environment variables");
+}
+
 export async function POST(request: Request) {
   try {
+    // Verify OpenAI API key is available
+    if (!OPENAI_API_KEY) {
+      return NextResponse.json(
+        { error: "OpenAI API is not configured. Please contact the administrator." },
+        { status: 503 }
+      );
+    }
+
     const supabase = await createClient();
     const {
       data: { user },
