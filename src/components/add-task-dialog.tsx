@@ -43,8 +43,10 @@ export default function AddTaskDialog() {
 
   useEffect(() => {
     const fetchCustomers = async () => {
-      const { data } = await supabase.from("customers").select("id, name");
-      if (data) setCustomers(data);
+      const { data } = await supabase
+        .from("customers")
+        .select("id, name, user_id, status, created_at, updated_at");
+      if (data) setCustomers(data as Customer[]);
     };
 
     fetchCustomers();
