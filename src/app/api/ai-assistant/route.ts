@@ -1,6 +1,56 @@
 import { NextResponse } from "next/server";
 import { createClient } from "../../../../supabase/server";
-import { openai } from "@/lib/openai";
+
+// Basic intent matching patterns
+const PATTERNS = {
+  ADD_CUSTOMER: /add\s+(a\s+)?customer|create\s+(a\s+)?customer|new\s+customer/i,
+  ADD_TASK: /add\s+(a\s+)?task|create\s+(a\s+)?task|new\s+task/i,
+  LIST_CUSTOMERS: /list\s+customers|show\s+customers|view\s+customers/i,
+  LIST_TASKS: /list\s+tasks|show\s+tasks|view\s+tasks/i,
+  HELP: /help|what can you do|commands|features/i
+};
+
+const HELP_MESSAGE = `I can help you manage your CRM. Here are some things you can ask me to do:
+
+1. Add a customer - Example: "add a customer John Doe from ABC Company"
+2. Create a task - Example: "create a task Follow up with client"
+3. List customers - Example: "show my customers"
+4. List tasks - Example: "show my pending tasks"
+
+Just type your request in natural language and I'll help you out!`;
+
+function extractCustomerInfo(message: string) {
+  const words = message.split(' ');
+  const nameStart = words.findIndex(w => w.toLowerCase() === 'customer') + 1;
+  let name = words.slice(nameStart).join(' ');
+  
+  // Extract company if present
+  const companyMatch = message.match(/from\s+(.+?)(?:\s+|$)/i);
+  const company = companyMatch ? companyMatch[1] : undefined;
+  
+  // Remove company part from name if present
+  if (company) {
+    name = name.replace(/from\s+.+$/, '').trim();
+  }
+
+  return {
+    name,
+    company,
+    status: 'lead'
+  };
+}
+
+function extractTaskInfo(message: string) {
+  const words = message.split(' ');
+  const titleStart = words.findIndex(w => w.toLowerCase() === 'task') + 1;
+  const title = words.slice(titleStart).join(' ');
+
+  return {
+    title,
+    priority: 'medium',
+    status: 'pending'
+  };
+}
 
 export async function POST(request: Request) {
   try {
@@ -14,113 +64,67 @@ export async function POST(request: Request) {
     }
 
     const { messages } = await request.json();
+    const userMessage = messages[messages.length - 1].content;
 
-    // Get user's customers for context
-    const { data: customers } = await supabase
-      .from("customers")
-      .select("id, name, email, company, status")
-      .eq("user_id", user.id)
-      .limit(10);
-
-    // Get user's tasks for context
-    const { data: tasks } = await supabase
-      .from("tasks")
-      .select("id, title, priority, status, due_date, customer_id")
-      .eq("user_id", user.id)
-      .eq("status", "pending")
-      .limit(10);
-
-    // Create system message with context
-    const systemMessage = {
-      role: "system",
-      content: `You are an AI assistant for CloudFlow CRM. You help users manage their customers and tasks.
-      
-You can help with:
-1. Adding new customers
-2. Creating tasks
-3. Providing insights about their CRM data
-
-Current user context:
-- User: ${user.email}
-- Customers: ${JSON.stringify(customers || [])}
-- Pending Tasks: ${JSON.stringify(tasks || [])}
-
-When the user wants to add a customer, extract the following information and respond with an action:
-- name (required)
-- email (optional)
-- phone (optional)
-- company (optional)
-- status (should be one of: lead, active, inactive; default to lead if not specified)
-- notes (optional)
-
-When the user wants to create a task, extract the following information and respond with an action:
-- title (required)
-- description (optional)
-- priority (should be one of: high, medium, low; default to medium if not specified)
-- due_date (optional, in ISO format)
-- customer_id (optional, should match an existing customer id if provided)
-
-Format your response as a conversational message. If you're performing an action, include the action details in your response.`,
+    // Handle different intents
+    let response = {
+      message: "",
+      action: null as string | null,
+      actionData: null as any
     };
 
-    // Add system message to the beginning of the conversation
-    const conversation = [systemMessage, ...messages];
+    if (PATTERNS.HELP.test(userMessage)) {
+      response.message = HELP_MESSAGE;
+    }
+    else if (PATTERNS.ADD_CUSTOMER.test(userMessage)) {
+      const customerInfo = extractCustomerInfo(userMessage);
+      response = {
+        message: `I'll help you add a customer named ${customerInfo.name}${customerInfo.company ? ` from ${customerInfo.company}` : ''}.`,
+        action: "addCustomer",
+        actionData: customerInfo
+      };
+    }
+    else if (PATTERNS.ADD_TASK.test(userMessage)) {
+      const taskInfo = extractTaskInfo(userMessage);
+      response = {
+        message: `I'll create a task: ${taskInfo.title}`,
+        action: "addTask",
+        actionData: taskInfo
+      };
+    }
+    else if (PATTERNS.LIST_CUSTOMERS.test(userMessage)) {
+      const { data: customers } = await supabase
+        .from("customers")
+        .select("name, company, status")
+        .eq("user_id", user.id)
+        .limit(5);
 
-    // Call OpenAI API
-    const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: conversation,
-      temperature: 0.7,
-      max_tokens: 500,
-    });
+      response.message = customers && customers.length > 0
+        ? `Here are your recent customers:\n${customers.map(c => `- ${c.name}${c.company ? ` (${c.company})` : ''} - ${c.status}`).join('\n')}`
+        : "You don't have any customers yet. Would you like to add one?";
+    }
+    else if (PATTERNS.LIST_TASKS.test(userMessage)) {
+      const { data: tasks } = await supabase
+        .from("tasks")
+        .select("title, priority, status")
+        .eq("user_id", user.id)
+        .eq("status", "pending")
+        .limit(5);
 
-    const assistantMessage = completion.choices[0].message.content || "";
-
-    // Check if the response contains action data
-    let action = null;
-    let actionData = null;
-    let cleanMessage = assistantMessage;
-
-    // Check for customer action
-    const customerMatch = assistantMessage.match(
-      /\{\s*"action"\s*:\s*"addCustomer"[^}]*\}/,
-    );
-    if (customerMatch) {
-      try {
-        const actionJson = JSON.parse(customerMatch[0]);
-        action = "addCustomer";
-        actionData = actionJson.data;
-        cleanMessage = assistantMessage.replace(customerMatch[0], "").trim();
-      } catch (e) {
-        console.error("Error parsing customer action:", e);
-      }
+      response.message = tasks && tasks.length > 0
+        ? `Here are your pending tasks:\n${tasks.map(t => `- ${t.title} (${t.priority} priority)`).join('\n')}`
+        : "You don't have any pending tasks. Would you like to create one?";
+    }
+    else {
+      response.message = "I understand you're trying to manage your CRM. Could you please be more specific? Type 'help' to see what I can do.";
     }
 
-    // Check for task action
-    const taskMatch = assistantMessage.match(
-      /\{\s*"action"\s*:\s*"addTask"[^}]*\}/,
-    );
-    if (taskMatch) {
-      try {
-        const actionJson = JSON.parse(taskMatch[0]);
-        action = "addTask";
-        actionData = actionJson.data;
-        cleanMessage = assistantMessage.replace(taskMatch[0], "").trim();
-      } catch (e) {
-        console.error("Error parsing task action:", e);
-      }
-    }
-
-    return NextResponse.json({
-      message: cleanMessage,
-      action,
-      actionData,
-    });
-  } catch (error) {
+    return NextResponse.json(response);
+  } catch (error: any) {
     console.error("API error:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
+      { error: "Something went wrong. Please try again." },
+      { status: 500 }
     );
   }
 }

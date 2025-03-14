@@ -51,7 +51,8 @@ export default function AIAssistant() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to get response");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to get response");
       }
 
       const data = await response.json();
@@ -65,13 +66,20 @@ export default function AIAssistant() {
         ...prev,
         { role: "assistant", content: data.message },
       ]);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error:", error);
+      let errorMessage = "Sorry, I encountered an error. Please try again.";
+      
+      // Check for quota exceeded error
+      if (error.message?.includes("quota") || error.message?.includes("429")) {
+        errorMessage = "The AI service is currently unavailable due to high demand. Please try again later or contact support for assistance.";
+      }
+      
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content: "Sorry, I encountered an error. Please try again.",
+          content: errorMessage,
         },
       ]);
     } finally {
