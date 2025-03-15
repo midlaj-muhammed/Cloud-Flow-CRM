@@ -1,11 +1,11 @@
 import { createClient } from "../../../../supabase/server";
 import { redirect } from "next/navigation";
 import DashboardNavbar from "@/components/dashboard-navbar";
-import { Button } from "@/components/ui/button";
-import { Plus, Search } from "lucide-react";
-import CustomerTable from "@/components/customer-table";
+import { Search } from "lucide-react";
 import AddCustomerDialog from "@/components/add-customer-dialog";
 import AIAssistant from "@/components/ai-assistant";
+import CustomerDashboard from "@/components/customer-dashboard";
+import { Card } from "@/components/ui/card";
 
 export default async function CustomersPage() {
   const supabase = await createClient();
@@ -35,7 +35,7 @@ export default async function CustomersPage() {
             <div>
               <h1 className="text-3xl font-bold">Customers</h1>
               <p className="text-muted-foreground mt-1">
-                Manage your customer relationships
+                Manage and analyze your customer relationships
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
@@ -44,20 +44,20 @@ export default async function CustomersPage() {
                 <input
                   type="text"
                   placeholder="Search customers..."
-                  className="pl-8 h-9 w-full sm:w-[250px] rounded-md border border-input bg-white px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className="pl-8 h-9 w-full sm:w-[250px] rounded-lg border border-gray-200 bg-white px-3 py-1 text-sm shadow-sm transition-all focus:ring-2 focus:ring-black/5 focus:border-gray-300"
                 />
               </div>
               <AddCustomerDialog />
             </div>
           </header>
 
-          {/* Customers Table */}
-          <section>
-            <CustomerTable initialCustomers={customers || []} />
-          </section>
+          {/* Customer Dashboard */}
+          <CustomerDashboard customers={customers || []} />
 
           {/* AI Assistant */}
-          <AIAssistant />
+          <Card className="p-6">
+            <AIAssistant />
+          </Card>
         </div>
       </main>
     </>

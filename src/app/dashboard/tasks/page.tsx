@@ -1,11 +1,11 @@
 import { createClient } from "../../../../supabase/server";
 import { redirect } from "next/navigation";
 import DashboardNavbar from "@/components/dashboard-navbar";
-import { Button } from "@/components/ui/button";
-import { Plus, Search } from "lucide-react";
-import TaskTable from "@/components/task-table";
+import { Search } from "lucide-react";
 import AddTaskDialog from "@/components/add-task-dialog";
 import AIAssistant from "@/components/ai-assistant";
+import TaskDashboard from "@/components/task-dashboard";
+import { Card } from "@/components/ui/card";
 
 export default async function TasksPage() {
   const supabase = await createClient();
@@ -35,7 +35,7 @@ export default async function TasksPage() {
             <div>
               <h1 className="text-3xl font-bold">Tasks</h1>
               <p className="text-muted-foreground mt-1">
-                Manage your follow-ups and to-dos
+                Track and manage your tasks efficiently
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
@@ -44,20 +44,20 @@ export default async function TasksPage() {
                 <input
                   type="text"
                   placeholder="Search tasks..."
-                  className="pl-8 h-9 w-full sm:w-[250px] rounded-md border border-input bg-white px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className="pl-8 h-9 w-full sm:w-[250px] rounded-lg border border-gray-200 bg-white px-3 py-1 text-sm shadow-sm transition-all focus:ring-2 focus:ring-black/5 focus:border-gray-300"
                 />
               </div>
               <AddTaskDialog />
             </div>
           </header>
 
-          {/* Tasks Table */}
-          <section>
-            <TaskTable initialTasks={tasks || []} />
-          </section>
+          {/* Task Dashboard */}
+          <TaskDashboard tasks={tasks || []} />
 
           {/* AI Assistant */}
-          <AIAssistant />
+          <Card className="p-6">
+            <AIAssistant />
+          </Card>
         </div>
       </main>
     </>

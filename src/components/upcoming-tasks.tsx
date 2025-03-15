@@ -60,61 +60,59 @@ const upcomingTasks: Task[] = [
 
 export default function UpcomingTasks() {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Upcoming Tasks</CardTitle>
-        <CardDescription>Tasks due in the next 48 hours.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {upcomingTasks.slice(0, 4).map((task) => (
-            <div key={task.id} className="flex items-start space-x-4">
-              <div className="mt-0.5">
-                <button className="h-5 w-5 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50">
-                  <CheckCircle className="h-3.5 w-3.5 text-muted-foreground" />
-                </button>
-              </div>
-              <div className="flex-1 space-y-1">
-                <p className="text-sm font-medium leading-none">{task.title}</p>
-                <div className="flex items-center pt-2">
-                  <Clock className="mr-1 h-3 w-3 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">
-                    {task.dueDate}
-                  </span>
-                </div>
-              </div>
-              <div>
-                <span
-                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getPriorityClasses(task.priority)}`}
-                >
-                  {task.priority.charAt(0).toUpperCase() +
-                    task.priority.slice(1)}
-                </span>
-              </div>
+    <div className="space-y-4">
+      {upcomingTasks.slice(0, 4).map((task) => (
+        <div
+          key={task.id}
+          className="group flex items-center gap-3 rounded-lg p-3 hover:bg-gray-50 transition-colors cursor-pointer"
+        >
+          <button className="flex-none">
+            <div className="h-5 w-5 rounded-full border-2 border-gray-300 flex items-center justify-center group-hover:border-gray-400 transition-colors">
+              <CheckCircle className="h-3.5 w-3.5 text-transparent group-hover:text-gray-400 transition-colors" />
             </div>
-          ))}
-        </div>
-        {upcomingTasks.length > 4 && (
-          <div className="mt-4 text-center">
-            <button className="text-sm text-blue-600 hover:text-blue-800 font-medium">
-              View all {upcomingTasks.length} tasks
-            </button>
+          </button>
+          <div className="min-w-0 flex-auto">
+            <div className="flex items-center gap-2">
+              <p className="truncate text-sm font-medium text-gray-900">
+                {task.title}
+              </p>
+              <span
+                className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${getPriorityClasses(task.priority)}`}
+              >
+                {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+              </span>
+            </div>
+            <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
+              <Clock className="h-3.5 w-3.5" />
+              <span>{task.dueDate}</span>
+              {task.customerName && (
+                <>
+                  <span className="text-gray-300">•</span>
+                  <span>{task.customerName}</span>
+                </>
+              )}
+            </div>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </div>
+      ))}
+      {upcomingTasks.length > 4 && (
+        <button className="w-full text-center py-2 text-sm text-gray-500 hover:text-gray-900 font-medium transition-colors">
+          View all {upcomingTasks.length} tasks
+        </button>
+      )}
+    </div>
   );
 }
 
 function getPriorityClasses(priority: Task["priority"]) {
   switch (priority) {
     case "high":
-      return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
+      return "bg-red-50 text-red-700";
     case "medium":
-      return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
+      return "bg-amber-50 text-amber-700";
     case "low":
-      return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
+      return "bg-emerald-50 text-emerald-700";
     default:
-      return "bg-gray-100 text-gray-800";
+      return "bg-gray-50 text-gray-700";
   }
 }

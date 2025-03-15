@@ -25,13 +25,13 @@ export default function CustomerTasks({
   const handleComplete = async (id: string) => {
     const { error } = await supabase
       .from("tasks")
-      .update({ status: "completed" })
+      .update({ status: "done" })
       .eq("id", id);
 
     if (!error) {
       setTasks(
         tasks.map((task) =>
-          task.id === id ? { ...task, status: "completed" } : task,
+          task.id === id ? { ...task, status: "done" } : task,
         ),
       );
     } else {
@@ -88,7 +88,7 @@ export default function CustomerTasks({
               <CardContent className="pt-6">
                 <div className="flex items-start gap-4">
                   <div>
-                    {task.status === "completed" ? (
+                    {task.status === "done" ? (
                       <div className="h-5 w-5 rounded-full bg-green-500 flex items-center justify-center text-white">
                         <CheckCircle className="h-4 w-4" />
                       </div>

@@ -56,64 +56,70 @@ const recentCustomers: Customer[] = [
 
 export default function RecentCustomers() {
   return (
-    <Card className="col-span-3">
-      <CardHeader>
-        <CardTitle>Recent Customers</CardTitle>
-        <CardDescription>
-          Your most recently contacted customers.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-8">
-          {recentCustomers.map((customer) => (
-            <div key={customer.id} className="flex items-center">
-              <Avatar className="h-9 w-9">
-                <AvatarImage src={customer.avatarUrl} alt={customer.name} />
-                <AvatarFallback className="bg-primary/10">
-                  {customer.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")}
-                </AvatarFallback>
-              </Avatar>
-              <div className="ml-4 space-y-1">
-                <p className="text-sm font-medium leading-none">
-                  {customer.name}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {customer.email}
-                </p>
-              </div>
-              <div className="ml-auto font-medium">
-                <span className="text-xs text-muted-foreground">
-                  {customer.lastContact}
-                </span>
-                <div className="mt-1">
+    <div className="overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="min-w-full">
+          <thead>
+            <tr className="border-b border-gray-100">
+              <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+              <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Contact</th>
+              <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50">
+            {recentCustomers.map((customer) => (
+              <tr
+                key={customer.id}
+                className="hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                <td className="py-3 px-4 whitespace-nowrap">
+                  <div className="flex items-center">
+                    <Avatar className="h-8 w-8 bg-gray-100">
+                      <AvatarImage src={customer.avatarUrl} alt={customer.name} />
+                      <AvatarFallback className="text-sm font-medium text-gray-900">
+                        {customer.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="ml-3">
+                      <p className="text-sm font-medium text-gray-900">{customer.name}</p>
+                    </div>
+                  </div>
+                </td>
+                <td className="py-3 px-4 whitespace-nowrap">
                   <span
-                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusClasses(customer.status)}`}
+                    className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${getStatusClasses(customer.status)}`}
                   >
-                    {customer.status.charAt(0).toUpperCase() +
-                      customer.status.slice(1)}
+                    {customer.status.charAt(0).toUpperCase() + customer.status.slice(1)}
                   </span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+                </td>
+                <td className="py-3 px-4 whitespace-nowrap">
+                  <span className="text-sm text-gray-600">{customer.lastContact}</span>
+                </td>
+                <td className="py-3 px-4 whitespace-nowrap">
+                  <span className="text-sm text-gray-600">{customer.email}</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
 
 function getStatusClasses(status: Customer["status"]) {
   switch (status) {
     case "active":
-      return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
+      return "bg-emerald-50 text-emerald-700";
     case "inactive":
-      return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
+      return "bg-gray-50 text-gray-700";
     case "lead":
-      return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
+      return "bg-blue-50 text-blue-700";
     default:
-      return "bg-gray-100 text-gray-800";
+      return "bg-gray-50 text-gray-700";
   }
 }

@@ -48,27 +48,27 @@ export default function CustomerTable({
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
       case "active":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
+        return "bg-green-50 text-green-700 ring-1 ring-green-600/20";
       case "inactive":
-        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
-      case "lead":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
+        return "bg-gray-50 text-gray-600 ring-1 ring-gray-500/20";
+      case "pending":
+        return "bg-yellow-50 text-yellow-700 ring-1 ring-yellow-600/20";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-50 text-gray-600 ring-1 ring-gray-500/20";
     }
   };
 
   return (
-    <div className="rounded-md border bg-white">
+    <div className="rounded-lg border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Company</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Added</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+            <TableHead className="bg-gray-50 text-sm font-medium text-gray-700">Name</TableHead>
+            <TableHead className="bg-gray-50 text-sm font-medium text-gray-700">Email</TableHead>
+            <TableHead className="bg-gray-50 text-sm font-medium text-gray-700">Company</TableHead>
+            <TableHead className="bg-gray-50 text-sm font-medium text-gray-700">Status</TableHead>
+            <TableHead className="bg-gray-50 text-sm font-medium text-gray-700">Added</TableHead>
+            <TableHead className="bg-gray-50 text-sm font-medium text-gray-700 text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -84,12 +84,12 @@ export default function CustomerTable({
           ) : (
             customers.map((customer) => (
               <TableRow key={customer.id}>
-                <TableCell className="font-medium">{customer.name}</TableCell>
-                <TableCell>{customer.email || "-"}</TableCell>
-                <TableCell>{customer.company || "-"}</TableCell>
+                <TableCell className="font-medium text-sm">{customer.name}</TableCell>
+                <TableCell className="text-sm text-gray-600">{customer.email || "-"}</TableCell>
+                <TableCell className="text-sm text-gray-600">{customer.company || "-"}</TableCell>
                 <TableCell>
                   <span
-                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusBadgeClass(
+                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors ${getStatusBadgeClass(
                       customer.status,
                     )}`}
                   >
@@ -97,7 +97,7 @@ export default function CustomerTable({
                       customer.status.slice(1)}
                   </span>
                 </TableCell>
-                <TableCell>
+                <TableCell className="text-sm text-gray-600">
                   {formatDistanceToNow(new Date(customer.created_at), {
                     addSuffix: true,
                   })}
@@ -105,16 +105,21 @@ export default function CustomerTable({
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 p-0 hover:bg-gray-100 hover:text-black transition-colors rounded-lg"
+                      >
                         <MoreHorizontal className="h-4 w-4" />
                         <span className="sr-only">Open menu</span>
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
+                    <DropdownMenuContent align="end" className="w-[160px] p-2 border border-gray-200 shadow-lg rounded-lg bg-white">
                       <DropdownMenuItem
                         onClick={() =>
                           router.push(`/dashboard/customers/${customer.id}`)
                         }
+                        className="flex items-center px-2 py-1.5 text-sm rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
                       >
                         <Eye className="mr-2 h-4 w-4" />
                         View Details
@@ -122,16 +127,17 @@ export default function CustomerTable({
                       <DropdownMenuItem
                         onClick={() =>
                           router.push(
-                            `/dashboard/customers/${customer.id}/edit`,
+                            `/dashboard/customers/${customer.id}/edit`
                           )
                         }
+                        className="flex items-center px-2 py-1.5 text-sm rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
                       >
                         <Pencil className="mr-2 h-4 w-4" />
                         Edit
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => handleDelete(customer.id)}
-                        className="text-red-600 focus:text-red-600"
+                        className="flex items-center px-2 py-1.5 text-sm rounded-md cursor-pointer text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
                         Delete

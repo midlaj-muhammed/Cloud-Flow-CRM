@@ -52,13 +52,13 @@ export default function TaskTable({ initialTasks }: TaskTableProps) {
   const handleComplete = async (id: string) => {
     const { error } = await supabase
       .from("tasks")
-      .update({ status: "completed" })
+      .update({ status: "done" })
       .eq("id", id);
 
     if (!error) {
       setTasks(
         tasks.map((task) =>
-          task.id === id ? { ...task, status: "completed" } : task,
+          task.id === id ? { ...task, status: "done" } : task,
         ),
       );
     } else {
@@ -81,7 +81,7 @@ export default function TaskTable({ initialTasks }: TaskTableProps) {
 
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
-      case "completed":
+      case "done":
         return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
       case "cancelled":
         return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
@@ -168,12 +168,12 @@ export default function TaskTable({ initialTasks }: TaskTableProps) {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      {task.status !== "completed" && (
+                      {task.status !== "done" && (
                         <DropdownMenuItem
                           onClick={() => handleComplete(task.id)}
                         >
                           <CheckCircle className="mr-2 h-4 w-4" />
-                          Mark Complete
+                          Mark Done
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuItem
