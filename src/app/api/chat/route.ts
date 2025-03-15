@@ -101,22 +101,30 @@ async function handleCommand(command: string, userId: string) {
       ).join("\n") || "No customer segments found.";
 
     case "/customer-activity":
+      interface CustomerActivity {
+        id: string;
+        action: string;
+        created_at: string;
+        customer: {
+          name: string;
+        } | null;
+      }
+
       const { data: activities } = await supabase
         .from("customer_activities")
         .select(`
           id,
           action,
           created_at,
-          customer:customers (
-            name
-          )
+          customer:customers (name)
         `)
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(5);
       
-      return activities?.map(activity =>
-        `- ${activity.customer?.name}: ${activity.action} (${new Date(activity.created_at).toLocaleString()})`
+      const typedActivities = activities as CustomerActivity[] | null;
+      return typedActivities?.map(activity =>
+        `- ${activity.customer?.name || 'Unknown'}: ${activity.action} (${new Date(activity.created_at).toLocaleString()})`
       ).join("\n") || "No recent customer activities found.";
 
     // Analytics & Reports
