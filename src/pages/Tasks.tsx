@@ -1,5 +1,5 @@
-
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
@@ -9,15 +9,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { 
   Plus, 
   Search, 
-  Calendar,
-  Clock,
-  CheckSquare,
-  X,
-  Edit,
+  CheckCircle, 
+  Clock, 
+  Calendar as CalendarIcon,
+  Flag,
   Trash2,
-  Filter,
-  ChevronDown,
-  AlertCircle
+  Pencil,
+  Filter
 } from 'lucide-react';
 import {
   Dialog,
@@ -42,8 +40,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { format } from "date-fns";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,22 +47,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { format } from 'date-fns';
+import { Calendar } from '@/components/ui/calendar';
+import { Badge } from '@/components/ui/badge';
 
 const Tasks = () => {
+  const { user } = useAuth();
   const { toast } = useToast();
   const [tasks, setTasks] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
   const [deals, setDeals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
   const [filterPriority, setFilterPriority] = useState('all');
-  const [activeTab, setActiveTab] = useState('pending');
   
   // Form state
   const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
@@ -74,9 +68,8 @@ const Tasks = () => {
   const [isDeleteTaskOpen, setIsDeleteTaskOpen] = useState(false);
   const [currentTask, setCurrentTask] = useState<any>(null);
   const [date, setDate] = useState<Date>();
-  const [time, setTime] = useState<string>('12:00');
   
-  // New task form state
+  // Task form state
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -155,42 +148,48 @@ const Tasks = () => {
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
   
   const handleSelectChange = (name: string, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
   
   const handleDateChange = (date: Date | undefined) => {
     setDate(date);
-    updateDueDate(date, time);
-  };
-  
-  const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTime(e.target.value);
-    updateDueDate(date, e.target.value);
-  };
-  
-  const updateDueDate = (date: Date | undefined, time: string) => {
     if (date) {
-      const [hours, minutes] = time.split(':').map(Number);
-      const dueDate = new Date(date);
-      dueDate.setHours(hours, minutes, 0, 0);
-      
-      setFormData(prev => ({ 
-        ...prev, 
-        due_date: dueDate.toISOString()
+      setFormData(prev => ({
+        ...prev,
+        due_date: date.toISOString()
       }));
     }
   };
   
   const handleAddTask = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "You must be logged in to add tasks",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     try {
       const { data, error } = await supabase
         .from('tasks')
-        .insert([formData])
+        .insert([{
+          ...formData,
+          owner_id: user.id
+        }])
         .select('*, contacts(*), deals(*)');
         
       if (error) throw error;
@@ -214,16 +213,7 @@ const Tasks = () => {
   
   const handleEditClick = (task: any) => {
     setCurrentTask(task);
-    
-    if (task.due_date) {
-      const dueDate = new Date(task.due_date);
-      setDate(dueDate);
-      setTime(`${dueDate.getHours().toString().padStart(2, '0')}:${dueDate.getMinutes().toString().padStart(2, '0')}`);
-    } else {
-      setDate(undefined);
-      setTime('12:00');
-    }
-    
+    setDate(task.due_date ? new Date(task.due_date) : undefined);
     setFormData({
       title: task.title || '',
       description: task.description || '',
@@ -233,18 +223,20 @@ const Tasks = () => {
       priority: task.priority || 'medium',
       status: task.status || 'pending'
     });
-    
     setIsEditTaskOpen(true);
   };
   
   const handleUpdateTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentTask) return;
+    if (!currentTask || !user) return;
     
     try {
       const { data, error } = await supabase
         .from('tasks')
-        .update(formData)
+        .update({
+          ...formData,
+          owner_id: user.id
+        })
         .eq('id', currentTask.id)
         .select('*, contacts(*), deals(*)');
         
@@ -307,64 +299,6 @@ const Tasks = () => {
     }
   };
   
-  const handleCompleteTask = async (task: any) => {
-    try {
-      const { data, error } = await supabase
-        .from('tasks')
-        .update({ status: 'completed' })
-        .eq('id', task.id)
-        .select('*, contacts(*), deals(*)');
-        
-      if (error) throw error;
-      
-      setTasks(prev => 
-        prev.map(t => 
-          t.id === task.id ? data[0] : t
-        )
-      );
-      
-      toast({
-        title: "Task completed",
-        description: "The task has been marked as completed"
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error updating task",
-        description: error.message,
-        variant: "destructive"
-      });
-    }
-  };
-  
-  const handleReopenTask = async (task: any) => {
-    try {
-      const { data, error } = await supabase
-        .from('tasks')
-        .update({ status: 'pending' })
-        .eq('id', task.id)
-        .select('*, contacts(*), deals(*)');
-        
-      if (error) throw error;
-      
-      setTasks(prev => 
-        prev.map(t => 
-          t.id === task.id ? data[0] : t
-        )
-      );
-      
-      toast({
-        title: "Task reopened",
-        description: "The task has been reopened"
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error updating task",
-        description: error.message,
-        variant: "destructive"
-      });
-    }
-  };
-  
   const resetForm = () => {
     setFormData({
       title: '',
@@ -376,9 +310,24 @@ const Tasks = () => {
       status: 'pending'
     });
     setDate(undefined);
-    setTime('12:00');
     setCurrentTask(null);
   };
+  
+  const filteredTasks = tasks.filter(task => {
+    const matchesSearch = 
+      (task.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (task.description?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+      
+    const matchesStatus = 
+      filterStatus === 'all' || 
+      task.status === filterStatus;
+      
+    const matchesPriority = 
+      filterPriority === 'all' || 
+      task.priority === filterPriority;
+      
+    return matchesSearch && matchesStatus && matchesPriority;
+  });
   
   const getContactName = (contactId: string) => {
     const contact = contacts.find(c => c.id === contactId);
@@ -397,98 +346,10 @@ const Tasks = () => {
   };
   
   const formatDate = (dateString: string) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    
-    if (date < tomorrow && date >= today) {
-      return 'Today';
-    } else if (date < new Date(today.setDate(today.getDate() + 2)) && date >= tomorrow) {
-      return 'Tomorrow';
-    } else {
-      return date.toLocaleDateString('en-US', { 
-        weekday: 'long', 
-        month: 'short', 
-        day: 'numeric' 
-      });
-    }
-  };
-
-  const formatTime = (dateString: string) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit'
-    });
-  };
-
-  const getTaskStatus = (task: any) => {
-    if (!task.due_date) return 'none';
-    
-    const now = new Date();
-    const dueDate = new Date(task.due_date);
-    
-    if (task.status === 'completed') return 'completed';
-    if (dueDate < now) return 'overdue';
-    
-    // If due within 24 hours
-    const oneDayFromNow = new Date(now);
-    oneDayFromNow.setHours(oneDayFromNow.getHours() + 24);
-    
-    if (dueDate <= oneDayFromNow) return 'due-soon';
-    return 'upcoming';
-  };
-  
-  const filteredTasks = tasks.filter(task => {
-    const matchesSearch = 
-      task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (task.description?.toLowerCase() || '').includes(searchTerm.toLowerCase());
-      
-    const matchesStatus = task.status === activeTab;
-    
-    const matchesPriority = 
-      filterPriority === 'all' || 
-      task.priority === filterPriority;
-      
-    return matchesSearch && matchesStatus && matchesPriority;
-  });
-  
-  const sortedTasks = [...filteredTasks].sort((a, b) => {
-    if (!a.due_date && !b.due_date) return 0;
-    if (!a.due_date) return 1;
-    if (!b.due_date) return -1;
-    
-    return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
-  });
-  
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high':
-        return 'bg-red-100 text-red-600';
-      case 'medium':
-        return 'bg-amber-100 text-amber-600';
-      case 'low':
-        return 'bg-green-100 text-green-600';
-      default:
-        return 'bg-gray-100 text-gray-600';
-    }
-  };
-  
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'overdue':
-        return 'text-red-500';
-      case 'due-soon':
-        return 'text-amber-500';
-      case 'completed':
-        return 'text-green-500';
-      default:
-        return 'text-gray-500';
+    try {
+      return format(new Date(dateString), 'MMM dd, yyyy');
+    } catch (error) {
+      return '-';
     }
   };
   
@@ -516,18 +377,41 @@ const Tasks = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setFilterPriority('all')} className={filterPriority === 'all' ? 'bg-gray-100' : ''}>
+                <DropdownMenuItem onClick={() => setFilterStatus('all')}>
+                  All Statuses
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setFilterStatus('pending')}>
+                  Pending
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setFilterStatus('in_progress')}>
+                  In Progress
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setFilterStatus('completed')}>
+                  Completed
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <Flag className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setFilterPriority('all')}>
                   All Priorities
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setFilterPriority('high')} className={filterPriority === 'high' ? 'bg-gray-100' : ''}>
-                  High Priority
+                <DropdownMenuItem onClick={() => setFilterPriority('high')}>
+                  High
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setFilterPriority('medium')} className={filterPriority === 'medium' ? 'bg-gray-100' : ''}>
-                  Medium Priority
+                <DropdownMenuItem onClick={() => setFilterPriority('medium')}>
+                  Medium
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setFilterPriority('low')} className={filterPriority === 'low' ? 'bg-gray-100' : ''}>
-                  Low Priority
+                <DropdownMenuItem onClick={() => setFilterPriority('low')}>
+                  Low
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -549,7 +433,7 @@ const Tasks = () => {
                 <form onSubmit={handleAddTask}>
                   <div className="grid gap-4 py-4">
                     <div className="space-y-2">
-                      <Label htmlFor="title">Task Title</Label>
+                      <Label htmlFor="title">Title</Label>
                       <Input 
                         id="title"
                         name="title"
@@ -570,67 +454,16 @@ const Tasks = () => {
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="priority">Priority</Label>
-                      <Select
-                        value={formData.priority}
-                        onValueChange={(value) => handleSelectChange('priority', value)}
-                      >
-                        <SelectTrigger id="priority">
-                          <SelectValue placeholder="Select priority" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="high">High</SelectItem>
-                          <SelectItem value="medium">Medium</SelectItem>
-                          <SelectItem value="low">Low</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Due Date</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant={"outline"}
-                              className="w-full justify-start text-left font-normal"
-                            >
-                              <Calendar className="mr-2 h-4 w-4" />
-                              {date ? format(date, "PPP") : <span>Pick a date</span>}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0">
-                            <CalendarComponent
-                              mode="single"
-                              selected={date}
-                              onSelect={handleDateChange}
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="time">Time</Label>
-                        <Input 
-                          id="time"
-                          type="time"
-                          value={time}
-                          onChange={handleTimeChange}
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="contact">Related Contact</Label>
+                      <Label htmlFor="contact">Contact</Label>
                       <Select
                         value={formData.contact_id}
                         onValueChange={(value) => handleSelectChange('contact_id', value)}
                       >
                         <SelectTrigger id="contact">
-                          <SelectValue placeholder="Select a contact (optional)" />
+                          <SelectValue placeholder="Select a contact" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">None</SelectItem>
+                          <SelectItem value="">No contact</SelectItem>
                           {contacts.map(contact => (
                             <SelectItem key={contact.id} value={contact.id}>
                               {contact.first_name} {contact.last_name} {contact.company ? `(${contact.company})` : ''}
@@ -641,16 +474,16 @@ const Tasks = () => {
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="deal">Related Deal</Label>
+                      <Label htmlFor="deal">Deal</Label>
                       <Select
                         value={formData.deal_id}
                         onValueChange={(value) => handleSelectChange('deal_id', value)}
                       >
                         <SelectTrigger id="deal">
-                          <SelectValue placeholder="Select a deal (optional)" />
+                          <SelectValue placeholder="Select a deal" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">None</SelectItem>
+                          <SelectItem value="">No deal</SelectItem>
                           {deals.map(deal => (
                             <SelectItem key={deal.id} value={deal.id}>
                               {deal.name}
@@ -658,6 +491,65 @@ const Tasks = () => {
                           ))}
                         </SelectContent>
                       </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="due_date">Due Date</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant={"outline"}
+                            className="w-full justify-start text-left font-normal"
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {date ? format(date, "PPP") : <span>Pick a date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={date}
+                            onSelect={handleDateChange}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="priority">Priority</Label>
+                        <Select
+                          value={formData.priority}
+                          onValueChange={(value) => handleSelectChange('priority', value)}
+                        >
+                          <SelectTrigger id="priority">
+                            <SelectValue placeholder="Select priority" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="high">High</SelectItem>
+                            <SelectItem value="medium">Medium</SelectItem>
+                            <SelectItem value="low">Low</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="status">Status</Label>
+                        <Select
+                          value={formData.status}
+                          onValueChange={(value) => handleSelectChange('status', value)}
+                        >
+                          <SelectTrigger id="status">
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="in_progress">In Progress</SelectItem>
+                            <SelectItem value="completed">Completed</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                   </div>
                   <DialogFooter>
@@ -672,200 +564,110 @@ const Tasks = () => {
           </div>
         </div>
         
-        <Tabs defaultValue="pending" value={activeTab} onValueChange={setActiveTab}>
-          <TabsList>
-            <TabsTrigger value="pending">Pending</TabsTrigger>
-            <TabsTrigger value="completed">Completed</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="pending" className="mt-4">
-            <Card>
-              <CardContent className="p-6">
-                {loading ? (
-                  <div className="flex justify-center items-center h-64">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cloudflow-blue-600"></div>
-                  </div>
-                ) : sortedTasks.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-64 space-y-4">
-                    <CheckSquare className="h-12 w-12 text-gray-300" />
-                    <div className="text-center">
-                      <h3 className="text-lg font-medium">No tasks found</h3>
-                      <p className="text-sm text-gray-500">
-                        {searchTerm || filterPriority !== 'all'
-                          ? "Try adjusting your search or filter to find what you're looking for."
-                          : "Get started by adding your first task."}
-                      </p>
-                    </div>
-                    <Button 
-                      onClick={() => setIsAddTaskOpen(true)}
-                      className="bg-cloudflow-blue-500 hover:bg-cloudflow-blue-600"
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add Task
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {sortedTasks.map(task => {
-                      const taskStatus = getTaskStatus(task);
-                      
-                      return (
-                        <div key={task.id} className="flex border rounded-lg p-4 hover:bg-gray-50">
-                          <div className="mr-4 flex flex-col items-center justify-center">
-                            <Button 
-                              variant="outline" 
-                              size="icon" 
-                              className="h-8 w-8 rounded-full border-2"
-                              onClick={() => handleCompleteTask(task)}
-                            >
-                              <CheckSquare className="h-4 w-4" />
-                            </Button>
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-start justify-between">
-                              <div>
-                                <h3 className="font-medium text-gray-900 mb-1">{task.title}</h3>
-                                {task.description && (
-                                  <p className="text-sm text-gray-600 mb-2">{task.description}</p>
-                                )}
-                              </div>
-                              <div className="flex space-x-1">
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="h-8 w-8"
-                                  onClick={() => handleEditClick(task)}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="h-8 w-8 text-red-500"
-                                  onClick={() => handleDeleteClick(task)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </div>
-                            <div className="flex flex-wrap gap-2 mt-2">
-                              <div className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${getPriorityColor(task.priority)}`}>
-                                {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)} Priority
-                              </div>
-                              
-                              {task.due_date && (
-                                <div className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-gray-100 ${getStatusColor(taskStatus)}`}>
-                                  <Clock className="mr-1 h-3 w-3" />
-                                  {taskStatus === 'overdue' ? 'Overdue: ' : ''}
-                                  {formatDate(task.due_date)}, {formatTime(task.due_date)}
-                                </div>
-                              )}
-                              
+        <Card>
+          <CardContent className="p-0">
+            {loading ? (
+              <div className="flex justify-center items-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cloudflow-blue-600"></div>
+              </div>
+            ) : filteredTasks.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-64 space-y-4">
+                <CheckCircle className="h-12 w-12 text-gray-300" />
+                <div className="text-center">
+                  <h3 className="text-lg font-medium">No tasks found</h3>
+                  <p className="text-sm text-gray-500">
+                    {searchTerm || filterStatus !== 'all' || filterPriority !== 'all'
+                      ? "Try adjusting your search or filters to find what you're looking for."
+                      : "Get started by adding your first task."}
+                  </p>
+                </div>
+                <Button 
+                  onClick={() => setIsAddTaskOpen(true)}
+                  className="bg-cloudflow-blue-500 hover:bg-cloudflow-blue-600"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Task
+                </Button>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <div className="divide-y divide-gray-200">
+                  {filteredTasks.map((task) => (
+                    <div key={task.id} className="p-4 hover:bg-gray-50">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          {task.status === 'completed' ? (
+                            <CheckCircle className="h-5 w-5 text-green-500" />
+                          ) : task.due_date && new Date(task.due_date) < new Date() ? (
+                            <Flag className="h-4 w-4 text-red-500" />
+                          ) : (
+                            <Clock className="h-4 w-4 text-gray-400" />
+                          )}
+                          
+                          <div>
+                            <p className="font-medium">{task.title}</p>
+                            <div className="text-sm text-gray-500">
                               {task.contact_id && (
-                                <div className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-blue-100 text-blue-700">
-                                  Contact: {getContactName(task.contact_id)}
-                                </div>
+                                <span>Contact: {getContactName(task.contact_id)}</span>
                               )}
-                              
                               {task.deal_id && (
-                                <div className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-purple-100 text-purple-700">
-                                  Deal: {getDealName(task.deal_id)}
-                                </div>
+                                <span>, Deal: {getDealName(task.deal_id)}</span>
                               )}
                             </div>
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="completed" className="mt-4">
-            <Card>
-              <CardContent className="p-6">
-                {loading ? (
-                  <div className="flex justify-center items-center h-64">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cloudflow-blue-600"></div>
-                  </div>
-                ) : sortedTasks.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-64 space-y-4">
-                    <CheckSquare className="h-12 w-12 text-gray-300" />
-                    <div className="text-center">
-                      <h3 className="text-lg font-medium">No completed tasks</h3>
-                      <p className="text-sm text-gray-500">
-                        Complete tasks will appear here.
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {sortedTasks.map(task => (
-                      <div key={task.id} className="flex border rounded-lg p-4 hover:bg-gray-50">
-                        <div className="mr-4 flex flex-col items-center justify-center">
-                          <Button 
-                            variant="outline" 
-                            size="icon" 
-                            className="h-8 w-8 rounded-full border-2 text-green-500 border-green-500"
-                            onClick={() => handleReopenTask(task)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <h3 className="font-medium text-gray-900 mb-1 line-through">{task.title}</h3>
-                              {task.description && (
-                                <p className="text-sm text-gray-600 mb-2 line-through">{task.description}</p>
-                              )}
+                        
+                        <div className="flex items-center space-x-2">
+                          {task.priority && (
+                            <Badge 
+                              variant="secondary"
+                              className={
+                                task.priority === 'high' ? 'bg-red-100 text-red-500 border-red-300' :
+                                task.priority === 'medium' ? 'bg-yellow-100 text-yellow-500 border-yellow-300' :
+                                'bg-green-100 text-green-500 border-green-300'
+                              }
+                            >
+                              {task.priority}
+                            </Badge>
+                          )}
+                          
+                          {task.due_date && (
+                            <div className="text-xs text-gray-500">
+                              <CalendarIcon className="h-3 w-3 inline-block mr-1" />
+                              {formatDate(task.due_date)}
                             </div>
-                            <div className="flex space-x-1">
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-8 w-8 text-red-500"
-                                onClick={() => handleDeleteClick(task)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            <div className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${getPriorityColor(task.priority)}`}>
-                              {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)} Priority
-                            </div>
-                            
-                            {task.due_date && (
-                              <div className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-gray-100 text-gray-600">
-                                <Clock className="mr-1 h-3 w-3" />
-                                {formatDate(task.due_date)}, {formatTime(task.due_date)}
-                              </div>
-                            )}
-                            
-                            {task.contact_id && (
-                              <div className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-blue-100 text-blue-700">
-                                Contact: {getContactName(task.contact_id)}
-                              </div>
-                            )}
-                            
-                            {task.deal_id && (
-                              <div className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-purple-100 text-purple-700">
-                                Deal: {getDealName(task.deal_id)}
-                              </div>
-                            )}
+                          )}
+                          
+                          <div className="flex space-x-2">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => handleEditClick(task)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => handleDeleteClick(task)}
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                      
+                      {task.description && (
+                        <p className="mt-2 text-sm text-gray-700">{task.description}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
         
         {/* Edit Dialog */}
         <Dialog open={isEditTaskOpen} onOpenChange={setIsEditTaskOpen}>
@@ -879,7 +681,7 @@ const Tasks = () => {
             <form onSubmit={handleUpdateTask}>
               <div className="grid gap-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="edit_title">Task Title</Label>
+                  <Label htmlFor="edit_title">Title</Label>
                   <Input 
                     id="edit_title"
                     name="title"
@@ -894,73 +696,22 @@ const Tasks = () => {
                   <Input 
                     id="edit_description"
                     name="description"
-                    value={formData.description || ''}
+                    value={formData.description}
                     onChange={handleInputChange}
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="edit_priority">Priority</Label>
-                  <Select
-                    value={formData.priority}
-                    onValueChange={(value) => handleSelectChange('priority', value)}
-                  >
-                    <SelectTrigger id="edit_priority">
-                      <SelectValue placeholder="Select priority" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="high">High</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="low">Low</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Due Date</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant={"outline"}
-                          className="w-full justify-start text-left font-normal"
-                        >
-                          <Calendar className="mr-2 h-4 w-4" />
-                          {date ? format(date, "PPP") : <span>Pick a date</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <CalendarComponent
-                          mode="single"
-                          selected={date}
-                          onSelect={handleDateChange}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit_time">Time</Label>
-                    <Input 
-                      id="edit_time"
-                      type="time"
-                      value={time}
-                      onChange={handleTimeChange}
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="edit_contact">Related Contact</Label>
+                  <Label htmlFor="edit_contact">Contact</Label>
                   <Select
                     value={formData.contact_id}
                     onValueChange={(value) => handleSelectChange('contact_id', value)}
                   >
                     <SelectTrigger id="edit_contact">
-                      <SelectValue placeholder="Select a contact (optional)" />
+                      <SelectValue placeholder="Select a contact" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="">No contact</SelectItem>
                       {contacts.map(contact => (
                         <SelectItem key={contact.id} value={contact.id}>
                           {contact.first_name} {contact.last_name} {contact.company ? `(${contact.company})` : ''}
@@ -971,16 +722,16 @@ const Tasks = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="edit_deal">Related Deal</Label>
+                  <Label htmlFor="edit_deal">Deal</Label>
                   <Select
                     value={formData.deal_id}
                     onValueChange={(value) => handleSelectChange('deal_id', value)}
                   >
                     <SelectTrigger id="edit_deal">
-                      <SelectValue placeholder="Select a deal (optional)" />
+                      <SelectValue placeholder="Select a deal" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="">No deal</SelectItem>
                       {deals.map(deal => (
                         <SelectItem key={deal.id} value={deal.id}>
                           {deal.name}
@@ -988,6 +739,65 @@ const Tasks = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit_due_date">Due Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={"outline"}
+                        className="w-full justify-start text-left font-normal"
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {date ? format(date, "PPP") : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={date}
+                        onSelect={handleDateChange}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit_priority">Priority</Label>
+                    <Select
+                      value={formData.priority}
+                      onValueChange={(value) => handleSelectChange('priority', value)}
+                    >
+                      <SelectTrigger id="edit_priority">
+                        <SelectValue placeholder="Select priority" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="low">Low</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="edit_status">Status</Label>
+                    <Select
+                      value={formData.status}
+                      onValueChange={(value) => handleSelectChange('status', value)}
+                    >
+                      <SelectTrigger id="edit_status">
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="in_progress">In Progress</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
               <DialogFooter>
@@ -1013,12 +823,12 @@ const Tasks = () => {
               {currentTask && (
                 <div className="p-4 border rounded-lg">
                   <p className="font-medium">{currentTask.title}</p>
-                  {currentTask.description && (
-                    <p className="text-sm text-gray-500">{currentTask.description}</p>
-                  )}
+                  <p className="text-sm text-gray-500">
+                    {currentTask.description || 'No description'}
+                  </p>
                   {currentTask.due_date && (
                     <p className="text-sm text-gray-500">
-                      Due: {formatDate(currentTask.due_date)}, {formatTime(currentTask.due_date)}
+                      Due Date: {formatDate(currentTask.due_date)}
                     </p>
                   )}
                 </div>

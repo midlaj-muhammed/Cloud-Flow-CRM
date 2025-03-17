@@ -23,7 +23,8 @@ import {
   Building, 
   Briefcase,
   ChevronDown,
-  Filter
+  Filter,
+  Users
 } from 'lucide-react';
 import {
   Dialog,
@@ -44,9 +45,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Card, CardContent } from '@/components/ui/card';
+import { useAuth } from "@/contexts/AuthContext";
 
 const Contacts = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [contacts, setContacts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -107,10 +110,23 @@ const Contacts = () => {
   
   const handleAddContact = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "You must be logged in to add contacts",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     try {
       const { data, error } = await supabase
         .from('contacts')
-        .insert([formData])
+        .insert([{
+          ...formData,
+          owner_id: user.id
+        }])
         .select();
         
       if (error) throw error;
@@ -150,7 +166,7 @@ const Contacts = () => {
   
   const handleUpdateContact = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentContact) return;
+    if (!currentContact || !user) return;
     
     try {
       const { data, error } = await supabase

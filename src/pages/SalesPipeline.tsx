@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { supabase } from '@/integrations/supabase/client';
@@ -40,6 +39,7 @@ import {
 } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { useAuth } from "@/contexts/AuthContext";
 
 const PIPELINE_STAGES = [
   { id: 'lead', name: 'Lead', color: 'bg-blue-100 border-blue-300' },
@@ -52,6 +52,7 @@ const PIPELINE_STAGES = [
 
 const SalesPipeline = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [deals, setDeals] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -147,12 +148,23 @@ const SalesPipeline = () => {
   
   const handleAddDeal = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "You must be logged in to add deals",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     try {
       const { data, error } = await supabase
         .from('deals')
         .insert([{
           ...formData,
-          value: formData.value ? parseFloat(formData.value) : null
+          value: formData.value ? parseFloat(formData.value) : null,
+          owner_id: user.id
         }])
         .select('*, contacts(*)');
         
