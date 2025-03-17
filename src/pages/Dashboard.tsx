@@ -4,11 +4,11 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import DashboardLayout from "@/components/layout/DashboardLayout";
 import DashboardContent from "@/components/dashboard/DashboardContent";
 
 const Dashboard = () => {
-  const { user, signOut } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -43,19 +43,6 @@ const Dashboard = () => {
     getProfile();
   }, [user, toast]);
 
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      navigate('/auth');
-    } catch (error: any) {
-      toast({
-        title: "Error signing out",
-        description: error.message,
-        variant: "destructive"
-      });
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -64,7 +51,11 @@ const Dashboard = () => {
     );
   }
 
-  return <DashboardContent profile={profile} onSignOut={handleSignOut} />;
+  return (
+    <DashboardLayout>
+      <DashboardContent profile={profile} />
+    </DashboardLayout>
+  );
 };
 
 export default Dashboard;
