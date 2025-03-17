@@ -1,465 +1,269 @@
 
 import { useState, useEffect } from 'react';
-import DashboardLayout from '@/components/layout/DashboardLayout';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import DashboardLayout from '@/components/layout/DashboardLayout';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { supabase } from '@/integrations/supabase/client';
+import RevenueChart from '@/components/reports/RevenueChart';
+import SalesPerformanceChart from '@/components/reports/SalesPerformanceChart';
+import ConversionRateChart from '@/components/reports/ConversionRateChart';
+import { useAuth } from '@/contexts/AuthContext';
+import { format } from 'date-fns';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from '@/components/ui/button';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { BarChart, LineChart, AreaChart, PieChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Bar, Line, Area, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { BarChart2, Download, Printer, Share2, FilterX, MoreVertical, Layers, Users, CreditCard, CheckCircle } from 'lucide-react';
+  DollarSign,
+  Users,
+  ArrowUp,
+  ArrowDown,
+  Briefcase,
+  CheckSquare
+} from 'lucide-react';
 
 const Reports = () => {
   const { toast } = useToast();
-  const [loading, setLoading] = useState(true);
-  const [deals, setDeals] = useState<any[]>([]);
-  const [contacts, setContacts] = useState<any[]>([]);
-  const [tasks, setTasks] = useState<any[]>([]);
-  const [timeframe, setTimeframe] = useState('month');
+  const { user } = useAuth();
+  const [revenueData, setRevenueData] = useState([
+    { month: 'Jan', revenue: 12500, profit: 5000 },
+    { month: 'Feb', revenue: 15000, profit: 6000 },
+    { month: 'Mar', revenue: 18000, profit: 7200 },
+    { month: 'Apr', revenue: 22000, profit: 9000 },
+    { month: 'May', revenue: 26000, profit: 10500 },
+    { month: 'Jun', revenue: 32000, profit: 13000 }
+  ]);
+  
+  const [salesPerformanceData, setSalesPerformanceData] = useState([
+    { name: 'Q1', target: 30000, actual: 35000 },
+    { name: 'Q2', target: 35000, actual: 40000 },
+    { name: 'Q3', target: 40000, actual: 38000 },
+    { name: 'Q4', target: 45000, actual: 50000 }
+  ]);
+  
+  const [conversionRateData, setConversionRateData] = useState([
+    { name: 'Lead to Qualified', value: 68 },
+    { name: 'Qualified to Proposal', value: 45 },
+    { name: 'Proposal to Negotiation', value: 30 },
+    { name: 'Negotiation to Closed', value: 80 }
+  ]);
+  
+  const [stats, setStats] = useState({
+    totalRevenue: 0,
+    totalContacts: 0,
+    totalDeals: 0,
+    completedTasks: 0,
+    winRate: 0,
+    avgDealSize: 0
+  });
+  
+  const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    fetchData();
-  }, []);
-  
-  const fetchData = async () => {
-    try {
-      setLoading(true);
+    const fetchStats = async () => {
+      if (!user) return;
       
-      // Fetch deals
-      const { data: dealsData, error: dealsError } = await supabase
-        .from('deals')
-        .select('*')
-        .order('created_at', { ascending: false });
+      try {
+        setIsLoading(true);
         
-      if (dealsError) throw dealsError;
-      setDeals(dealsData || []);
-      
-      // Fetch contacts
-      const { data: contactsData, error: contactsError } = await supabase
-        .from('contacts')
-        .select('*')
-        .order('created_at', { ascending: false });
+        // Get total deals amount
+        const { data: dealsData, error: dealsError } = await supabase
+          .from('deals')
+          .select('value, stage, status')
+          .eq('owner_id', user.id);
+          
+        if (dealsError) throw dealsError;
         
-      if (contactsError) throw contactsError;
-      setContacts(contactsData || []);
-      
-      // Fetch tasks
-      const { data: tasksData, error: tasksError } = await supabase
-        .from('tasks')
-        .select('*')
-        .order('created_at', { ascending: false });
+        // Get total contacts
+        const { count: contactsCount, error: contactsError } = await supabase
+          .from('contacts')
+          .select('id', { count: 'exact' })
+          .eq('owner_id', user.id);
+          
+        if (contactsError) throw contactsError;
         
-      if (tasksError) throw tasksError;
-      setTasks(tasksData || []);
-    } catch (error: any) {
-      toast({
-        title: "Error fetching data",
-        description: error.message,
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  // Generate monthly revenue data
-  const getRevenueData = () => {
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const months: { [key: string]: { name: string, value: number } } = {};
-    
-    // Initialize all months with 0
-    monthNames.forEach(month => {
-      months[month] = { name: month, value: 0 };
-    });
-    
-    // Sum up deal values by month
-    deals.forEach(deal => {
-      if (deal.status === 'closed_won' && deal.close_date) {
-        const date = new Date(deal.close_date);
-        const month = monthNames[date.getMonth()];
-        if (months[month]) {
-          months[month].value += Number(deal.value) || 0;
-        }
+        // Get completed tasks
+        const { count: completedTasksCount, error: tasksError } = await supabase
+          .from('tasks')
+          .select('id', { count: 'exact' })
+          .eq('owner_id', user.id)
+          .eq('status', 'completed');
+          
+        if (tasksError) throw tasksError;
+        
+        // Calculate stats
+        const closedWonDeals = dealsData.filter(deal => deal.stage === 'closed_won' && deal.status === 'closed').length;
+        const closedDeals = dealsData.filter(deal => (deal.stage === 'closed_won' || deal.stage === 'closed_lost') && deal.status === 'closed').length;
+        const winRate = closedDeals > 0 ? (closedWonDeals / closedDeals) * 100 : 0;
+        
+        const totalRevenue = dealsData
+          .filter(deal => deal.stage === 'closed_won')
+          .reduce((sum, deal) => sum + (deal.value || 0), 0);
+          
+        const avgDealSize = closedWonDeals > 0 ? totalRevenue / closedWonDeals : 0;
+        
+        setStats({
+          totalRevenue,
+          totalContacts: contactsCount || 0,
+          totalDeals: dealsData.length,
+          completedTasks: completedTasksCount || 0,
+          winRate,
+          avgDealSize
+        });
+      } catch (error: any) {
+        toast({
+          title: "Error fetching stats",
+          description: error.message,
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
       }
-    });
-    
-    return Object.values(months);
-  };
-  
-  // Generate deal stage data
-  const getDealStageData = () => {
-    const stages = {
-      lead: { name: 'Lead', value: 0 },
-      qualified: { name: 'Qualified', value: 0 },
-      proposal: { name: 'Proposal', value: 0 },
-      negotiation: { name: 'Negotiation', value: 0 },
-      closed_won: { name: 'Closed Won', value: 0 },
-      closed_lost: { name: 'Closed Lost', value: 0 }
     };
     
-    deals.forEach(deal => {
-      if (deal.stage && stages[deal.stage as keyof typeof stages]) {
-        stages[deal.stage as keyof typeof stages].value += 1;
-      }
-    });
-    
-    return Object.values(stages);
-  };
-  
-  // Generate deal values by stage
-  const getDealValueByStage = () => {
-    const stages = {
-      lead: { name: 'Lead', value: 0 },
-      qualified: { name: 'Qualified', value: 0 },
-      proposal: { name: 'Proposal', value: 0 },
-      negotiation: { name: 'Negotiation', value: 0 },
-      closed_won: { name: 'Closed Won', value: 0 }
-    };
-    
-    deals.forEach(deal => {
-      if (deal.stage && deal.stage !== 'closed_lost' && stages[deal.stage as keyof typeof stages]) {
-        stages[deal.stage as keyof typeof stages].value += Number(deal.value) || 0;
-      }
-    });
-    
-    return Object.values(stages);
-  };
-  
-  // Generate contacts by source data
-  const getContactsBySource = () => {
-    const sources: { [key: string]: { name: string, value: number } } = {};
-    
-    contacts.forEach(contact => {
-      const source = contact.source || 'Unknown';
-      if (!sources[source]) {
-        sources[source] = { name: source, value: 0 };
-      }
-      sources[source].value += 1;
-    });
-    
-    return Object.values(sources);
-  };
-  
-  // Generate tasks by status data
-  const getTasksByStatus = () => {
-    const statuses = {
-      pending: { name: 'Pending', value: 0 },
-      completed: { name: 'Completed', value: 0 }
-    };
-    
-    tasks.forEach(task => {
-      if (task.status && statuses[task.status as keyof typeof statuses]) {
-        statuses[task.status as keyof typeof statuses].value += 1;
-      }
-    });
-    
-    return Object.values(statuses);
-  };
-  
-  // Generate tasks by priority data
-  const getTasksByPriority = () => {
-    const priorities = {
-      high: { name: 'High', value: 0 },
-      medium: { name: 'Medium', value: 0 },
-      low: { name: 'Low', value: 0 }
-    };
-    
-    tasks.forEach(task => {
-      if (task.priority && priorities[task.priority as keyof typeof priorities]) {
-        priorities[task.priority as keyof typeof priorities].value += 1;
-      }
-    });
-    
-    return Object.values(priorities);
-  };
-  
-  const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#a4de6c', '#d0ed57'];
-  
-  const renderExportButton = (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Download className="mr-2 h-4 w-4" />
-          Export
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem>
-          <Download className="mr-2 h-4 w-4" />
-          Export as PDF
-        </DropdownMenuItem>
-        <DropdownMenuItem>
-          <Download className="mr-2 h-4 w-4" />
-          Export as CSV
-        </DropdownMenuItem>
-        <DropdownMenuItem>
-          <Printer className="mr-2 h-4 w-4" />
-          Print Report
-        </DropdownMenuItem>
-        <DropdownMenuItem>
-          <Share2 className="mr-2 h-4 w-4" />
-          Share Report
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
+    fetchStats();
+  }, [user, toast]);
   
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Reports & Analytics</h1>
-            <p className="text-sm text-gray-500">Get insights into your sales and activities</p>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Select
-              value={timeframe}
-              onValueChange={setTimeframe}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Select timeframe" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="week">Last Week</SelectItem>
-                <SelectItem value="month">Last Month</SelectItem>
-                <SelectItem value="quarter">Last Quarter</SelectItem>
-                <SelectItem value="year">Last Year</SelectItem>
-                <SelectItem value="all">All Time</SelectItem>
-              </SelectContent>
-            </Select>
-            
-            {renderExportButton}
-          </div>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Reports & Analytics</h1>
+          <p className="text-muted-foreground">
+            View insights and analytics about your sales and activities
+          </p>
         </div>
         
-        {loading ? (
+        {isLoading ? (
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cloudflow-blue-600"></div>
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-base font-medium">Total Contacts</CardTitle>
-                  <Users className="h-4 w-4 text-gray-500" />
+                  <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{contacts.length}</div>
-                  <p className="text-xs text-gray-500 mt-1">+{contacts.filter(c => {
-                    const createdAt = new Date(c.created_at);
-                    const thirtyDaysAgo = new Date();
-                    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-                    return createdAt >= thirtyDaysAgo;
-                  }).length} from last month</p>
+                  <div className="text-2xl font-bold">${stats.totalRevenue.toLocaleString()}</div>
+                  <p className="text-xs text-muted-foreground">
+                    +4.3% from last month
+                  </p>
                 </CardContent>
               </Card>
               
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-base font-medium">Active Deals</CardTitle>
-                  <CreditCard className="h-4 w-4 text-gray-500" />
+                  <CardTitle className="text-sm font-medium">Win Rate</CardTitle>
+                  <ArrowUp className="h-4 w-4 text-green-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">${deals.filter(d => d.status === 'open').reduce((sum, deal) => sum + (Number(deal.value) || 0), 0).toLocaleString()}</div>
-                  <p className="text-xs text-gray-500 mt-1">{deals.filter(d => d.status === 'open').length} open deals</p>
+                  <div className="text-2xl font-bold">{stats.winRate.toFixed(1)}%</div>
+                  <p className="text-xs text-muted-foreground">
+                    +2.1% from last quarter
+                  </p>
                 </CardContent>
               </Card>
               
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-base font-medium">Completed Tasks</CardTitle>
-                  <CheckCircle className="h-4 w-4 text-gray-500" />
+                  <CardTitle className="text-sm font-medium">Avg. Deal Size</CardTitle>
+                  <Briefcase className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{tasks.filter(t => t.status === 'completed').length}</div>
-                  <p className="text-xs text-gray-500 mt-1">{Math.round((tasks.filter(t => t.status === 'completed').length / (tasks.length || 1)) * 100)}% completion rate</p>
+                  <div className="text-2xl font-bold">${stats.avgDealSize.toLocaleString()}</div>
+                  <p className="text-xs text-muted-foreground">
+                    +12% from last quarter
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Completed Tasks</CardTitle>
+                  <CheckSquare className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.completedTasks}</div>
+                  <p className="text-xs text-muted-foreground">
+                    Last updated: {format(new Date(), 'MMM d, yyyy')}
+                  </p>
                 </CardContent>
               </Card>
             </div>
             
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-              <Card>
-                <CardHeader>
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <CardTitle>Revenue Overview</CardTitle>
-                      <CardDescription>Monthly revenue from closed deals</CardDescription>
+            <Tabs defaultValue="overview" className="space-y-6">
+              <TabsList>
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="sales">Sales</TabsTrigger>
+                <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="overview" className="space-y-6">
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  <RevenueChart data={revenueData} />
+                  <ConversionRateChart data={conversionRateData} />
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="sales" className="space-y-6">
+                <div className="grid gap-6 md:grid-cols-2">
+                  <SalesPerformanceChart data={salesPerformanceData} />
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Sales by Representative</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {['Alex Johnson', 'Sarah Williams', 'Michael Brown'].map((rep, i) => (
+                          <div key={i} className="flex items-center justify-between">
+                            <div className="flex items-center space-x-2">
+                              <div className="h-8 w-8 rounded-full bg-cloudflow-blue-100 flex items-center justify-center text-cloudflow-blue-600">
+                                {rep.split(' ').map(n => n[0]).join('')}
+                              </div>
+                              <span>{rep}</span>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-medium">${(Math.random() * 50000 + 10000).toFixed(0)}</div>
+                              <div className="text-xs text-green-600">
+                                +{(Math.random() * 20).toFixed(1)}%
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="pipeline" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Pipeline Health</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {['Lead', 'Qualified', 'Proposal', 'Negotiation', 'Closed Won'].map((stage, i) => (
+                        <div key={i}>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-sm font-medium">{stage}</span>
+                            <span className="text-sm text-gray-500">{Math.floor(Math.random() * 50 + 10)} deals</span>
+                          </div>
+                          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div 
+                              className={`h-full rounded-full ${
+                                ['bg-blue-500', 'bg-purple-500', 'bg-cyan-500', 'bg-amber-500', 'bg-green-500'][i]
+                              }`}
+                              style={{ width: `${Math.random() * 80 + 20}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>View Details</DropdownMenuItem>
-                        <DropdownMenuItem>Download Data</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={getRevenueData()}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
-                        <YAxis />
-                        <Tooltip 
-                          formatter={(value) => [`$${value}`, 'Revenue']}
-                        />
-                        <Bar dataKey="value" fill="#8884d8" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <CardTitle>Deal Pipeline Value</CardTitle>
-                      <CardDescription>Value distribution across pipeline stages</CardDescription>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>View Details</DropdownMenuItem>
-                        <DropdownMenuItem>Download Data</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={getDealValueByStage()}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
-                        <YAxis />
-                        <Tooltip 
-                          formatter={(value) => [`$${value}`, 'Value']}
-                        />
-                        <Area type="monotone" dataKey="value" fill="#8884d8" stroke="#8884d8" />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Deals by Stage</CardTitle>
-                  <CardDescription>Distribution of deals across sales stages</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={getDealStageData()}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                        >
-                          {getDealStageData().map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Contacts by Source</CardTitle>
-                  <CardDescription>Where your contacts are coming from</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={getContactsBySource()}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                        >
-                          {getContactsBySource().map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Tasks by Priority</CardTitle>
-                  <CardDescription>Distribution of tasks by priority level</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={getTasksByPriority()}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                        >
-                          {getTasksByPriority().map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </>
         )}
       </div>
