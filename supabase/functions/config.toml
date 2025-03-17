@@ -1,5 +1,0 @@
-
-project_id = "imxzndntorrsgkdnmvef"
-
-[functions.openai-chat]
-verify_jwt = false

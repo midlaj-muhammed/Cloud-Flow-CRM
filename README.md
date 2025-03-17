@@ -1,85 +1,69 @@
-# Cloud Flow
+# Welcome to your Lovable project
 
-A modern web application built with React, TypeScript, and Vite, featuring a beautiful UI powered by shadcn/ui and Tailwind CSS.
+## Project info
 
-## 🚀 Features
+**URL**: https://lovable.dev/projects/f41a67a9-5585-44cc-a534-a761b0c84b46
 
-- Modern and responsive UI components using shadcn/ui
-- Type-safe development with TypeScript
-- Fast development and build times with Vite
-- Supabase integration for backend services
-- Beautiful styling with Tailwind CSS
-- Form handling with React Hook Form and Zod validation
-- Advanced UI components including:
-  - Modals and dialogs
-  - Toast notifications
-  - Navigation menus
-  - Form elements
-  - Data visualization with Recharts
-  - And much more!
+## How can I edit this code?
 
-## 🛠️ Tech Stack
+There are several ways of editing your application.
 
-- [React](https://reactjs.org/) - UI Library
-- [TypeScript](https://www.typescriptlang.org/) - Type Safety
-- [Vite](https://vitejs.dev/) - Build Tool
-- [shadcn/ui](https://ui.shadcn.com/) - UI Component Library
-- [Tailwind CSS](https://tailwindcss.com/) - Styling
-- [Supabase](https://supabase.com/) - Backend Services
-- [React Router](https://reactrouter.com/) - Routing
-- [React Query](https://tanstack.com/query/latest) - Data Fetching
-- [React Hook Form](https://react-hook-form.com/) - Form Management
-- [Zod](https://zod.dev/) - Schema Validation
+**Use Lovable**
 
-## 📦 Installation
+Simply visit the [Lovable Project](https://lovable.dev/projects/f41a67a9-5585-44cc-a534-a761b0c84b46) and start prompting.
 
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd cloud-flow
-```
+Changes made via Lovable will be committed automatically to this repo.
 
-2. Install dependencies:
-```bash
-npm install
-# or
-bun install
-```
+**Use your preferred IDE**
 
-3. Start the development server:
-```bash
+If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+
+The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+
+Follow these steps:
+
+```sh
+# Step 1: Clone the repository using the project's Git URL.
+git clone <YOUR_GIT_URL>
+
+# Step 2: Navigate to the project directory.
+cd <YOUR_PROJECT_NAME>
+
+# Step 3: Install the necessary dependencies.
+npm i
+
+# Step 4: Start the development server with auto-reloading and an instant preview.
 npm run dev
-# or
-bun run dev
 ```
 
-## 🔧 Available Scripts
+**Edit a file directly in GitHub**
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run build:dev` - Build for development
-- `npm run preview` - Preview production build
-- `npm run lint` - Run ESLint
+- Navigate to the desired file(s).
+- Click the "Edit" button (pencil icon) at the top right of the file view.
+- Make your changes and commit the changes.
 
-## 🌐 Environment Setup
+**Use GitHub Codespaces**
 
-Create a `.env` file in the root directory with your Supabase configuration:
+- Navigate to the main page of your repository.
+- Click on the "Code" button (green button) near the top right.
+- Select the "Codespaces" tab.
+- Click on "New codespace" to launch a new Codespace environment.
+- Edit files directly within the Codespace and commit and push your changes once you're done.
 
-```env
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
+## What technologies are used for this project?
 
-## 📝 License
+This project is built with .
 
-This project is licensed under the MIT License.
+- Vite
+- TypeScript
+- React
+- shadcn-ui
+- Tailwind CSS
 
-## 🤝 Contributing
+## How can I deploy this project?
 
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](issues-url).
+Simply open [Lovable](https://lovable.dev/projects/f41a67a9-5585-44cc-a534-a761b0c84b46) and click on Share -> Publish.
 
-## 🙏 Acknowledgments
+## I want to use a custom domain - is that possible?
 
-- [shadcn/ui](https://ui.shadcn.com/) for the amazing UI components
-- [Tailwind CSS](https://tailwindcss.com/) for the utility-first CSS framework
-- [Radix UI](https://www.radix-ui.com/) for accessible component primitives
+We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)

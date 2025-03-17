@@ -15,7 +15,6 @@ import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
-import Chatbot from "./components/chatbot/Chatbot";
 
 const queryClient = new QueryClient();
 
@@ -39,7 +38,6 @@ const App = () => (
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
-          <Chatbot />
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
