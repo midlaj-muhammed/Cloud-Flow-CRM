@@ -1,88 +1,179 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
-import { Menu, X } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { LogOut } from "lucide-react";
 
 const Navbar = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const navigate = useNavigate();
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
 
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
+  useEffect(() => {
+    // Check if user is logged in
+    const getUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      setUser(data.user);
+    };
+    
+    getUser();
+
+    // Set up auth state listener
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUser(session?.user ?? null);
+      }
+    );
+
+    // Scroll handler
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      authListener?.subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate("/");
   };
 
   return (
-    <nav className="bg-white py-4 shadow-sm sticky top-0 z-50">
-      <div className="container mx-auto px-4 md:px-6 lg:px-8 flex justify-between items-center">
-        <Link to="/" className="flex items-center space-x-2">
-          <div className="h-8 w-8 rounded-md bg-gradient-to-br from-cloudflow-blue-500 to-cloudflow-blue-700 flex items-center justify-center">
-            <span className="text-white font-bold text-lg">CF</span>
-          </div>
-          <span className="text-xl font-bold text-cloudflow-gray-800">Cloud Flow</span>
-        </Link>
-        
-        {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center space-x-8">
-          <div className="space-x-6">
-            <Link to="/" className="text-cloudflow-gray-600 hover:text-cloudflow-blue-600 transition-colors">
-              Home
-            </Link>
-            <Link to="#features" className="text-cloudflow-gray-600 hover:text-cloudflow-blue-600 transition-colors">
-              Features
-            </Link>
-            <Link to="#pricing" className="text-cloudflow-gray-600 hover:text-cloudflow-blue-600 transition-colors">
-              Pricing
-            </Link>
-            <Link to="/dashboard" className="text-cloudflow-gray-600 hover:text-cloudflow-blue-600 transition-colors">
-              Dashboard
-            </Link>
-          </div>
-          <div className="space-x-3">
-            <Button variant="outline" className="border-cloudflow-blue-500 text-cloudflow-blue-500 hover:text-cloudflow-blue-600 hover:border-cloudflow-blue-600">
-              Log in
-            </Button>
-            <Button className="bg-cloudflow-blue-500 hover:bg-cloudflow-blue-600 text-white">
-              Sign up
-            </Button>
-          </div>
-        </div>
-        
-        {/* Mobile Navigation */}
-        <div className="md:hidden">
-          <Button variant="ghost" size="sm" onClick={toggleMenu} className="text-cloudflow-gray-700">
-            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </Button>
-        </div>
-      </div>
-      
-      {/* Mobile Menu */}
-      {isMenuOpen && (
-        <div className="md:hidden absolute top-16 inset-x-0 bg-white shadow-md z-50 py-4">
-          <div className="container mx-auto px-4 flex flex-col space-y-4">
-            <Link to="/" className="text-cloudflow-gray-600 hover:text-cloudflow-blue-600 py-2 transition-colors" onClick={toggleMenu}>
-              Home
-            </Link>
-            <Link to="#features" className="text-cloudflow-gray-600 hover:text-cloudflow-blue-600 py-2 transition-colors" onClick={toggleMenu}>
-              Features
-            </Link>
-            <Link to="#pricing" className="text-cloudflow-gray-600 hover:text-cloudflow-blue-600 py-2 transition-colors" onClick={toggleMenu}>
-              Pricing
-            </Link>
-            <Link to="/dashboard" className="text-cloudflow-gray-600 hover:text-cloudflow-blue-600 py-2 transition-colors" onClick={toggleMenu}>
-              Dashboard
-            </Link>
-            <div className="flex flex-col space-y-2 pt-2 border-t border-cloudflow-gray-100">
-              <Button variant="outline" className="border-cloudflow-blue-500 text-cloudflow-blue-500 w-full">
-                Log in
-              </Button>
-              <Button className="bg-cloudflow-blue-500 hover:bg-cloudflow-blue-600 text-white w-full">
-                Sign up
-              </Button>
+    <header
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        isScrolled ? "bg-white shadow-md py-3" : "bg-transparent py-5"
+      }`}
+    >
+      <div className="container mx-auto px-4">
+        <div className="flex justify-between items-center">
+          <Link to="/" className="flex items-center space-x-2">
+            <div className="h-8 w-8 rounded-md bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
+              <span className="text-white font-bold text-lg">CF</span>
             </div>
-          </div>
+            <span className="text-xl font-bold text-gray-900">Cloud Flow</span>
+          </Link>
+
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center space-x-8">
+            <Link to="/" className="text-gray-600 hover:text-blue-600">Home</Link>
+            <Link to="/#features" className="text-gray-600 hover:text-blue-600">Features</Link>
+            <Link to="/#pricing" className="text-gray-600 hover:text-blue-600">Pricing</Link>
+            {user ? (
+              <div className="flex items-center space-x-4">
+                <Link to="/dashboard">
+                  <Button variant="outline" className="border-blue-500 text-blue-600">
+                    Dashboard
+                  </Button>
+                </Link>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={handleSignOut}
+                  className="text-gray-600 hover:text-red-600"
+                >
+                  <LogOut size={18} />
+                </Button>
+              </div>
+            ) : (
+              <Link to="/auth">
+                <Button>Sign In</Button>
+              </Link>
+            )}
+          </nav>
+
+          {/* Mobile Menu Button */}
+          <button
+            className="md:hidden"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6 text-gray-600"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              {isMobileMenuOpen ? (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              ) : (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              )}
+            </svg>
+          </button>
         </div>
-      )}
-    </nav>
+
+        {/* Mobile Navigation */}
+        {isMobileMenuOpen && (
+          <nav className="md:hidden mt-4 pt-4 border-t border-gray-200">
+            <div className="flex flex-col space-y-4">
+              <Link
+                to="/"
+                className="text-gray-600 hover:text-blue-600"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Home
+              </Link>
+              <Link
+                to="/#features"
+                className="text-gray-600 hover:text-blue-600"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Features
+              </Link>
+              <Link
+                to="/#pricing"
+                className="text-gray-600 hover:text-blue-600"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Pricing
+              </Link>
+              {user ? (
+                <>
+                  <Link
+                    to="/dashboard"
+                    className="text-blue-600 font-medium"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Dashboard
+                  </Link>
+                  <Button
+                    variant="ghost"
+                    className="justify-start text-red-600 p-0 hover:bg-transparent"
+                    onClick={() => {
+                      handleSignOut();
+                      setIsMobileMenuOpen(false);
+                    }}
+                  >
+                    <LogOut size={18} className="mr-2" />
+                    Sign Out
+                  </Button>
+                </>
+              ) : (
+                <Link to="/auth">
+                  <Button>Sign In</Button>
+                </Link>
+              )}
+            </div>
+          </nav>
+        )}
+      </div>
+    </header>
   );
 };
 
