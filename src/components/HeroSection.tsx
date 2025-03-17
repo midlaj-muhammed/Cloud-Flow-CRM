@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 
@@ -29,13 +28,16 @@ const HeroSection = () => {
           </div>
           <div className="w-full lg:w-1/2 px-4">
             <div className="relative mx-auto max-w-md">
-              <img
-                className="relative rounded-lg shadow-2xl border border-gray-200"
-                src="https://cdn.dribbble.com/userupload/3650051/file/original-1a3b19a08ab22ec93bdb3ef6e1ee98e0.png?compress=1&resize=1200x900"
-                alt="CRM Dashboard"
-              />
-              <div className="absolute -top-4 -left-4 w-24 h-24 bg-blue-500 rounded-lg opacity-50 blur-xl"></div>
-              <div className="absolute -bottom-4 -right-4 w-40 h-40 bg-purple-500 rounded-full opacity-50 blur-xl"></div>
+              <div className="relative overflow-hidden rounded-lg">
+                <img
+                  className="relative w-full shadow-2xl border border-gray-200"
+                  src="https://mir-s3-cdn-cf.behance.net/project_modules/fs/40dc2c110867127.5ff70557e47d9.png"
+                  alt="Bronox CRM Dashboard"
+                />
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-purple-500/10 to-indigo-600/20 backdrop-blur-[2px] rounded-lg"></div>
+              </div>
+              <div className="absolute -top-4 -left-4 w-24 h-24 bg-blue-500 rounded-lg opacity-40 blur-xl"></div>
+              <div className="absolute -bottom-4 -right-4 w-40 h-40 bg-purple-500 rounded-full opacity-40 blur-xl"></div>
             </div>
           </div>
         </div>
