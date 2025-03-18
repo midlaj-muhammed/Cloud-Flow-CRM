@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { supabase } from '@/integrations/supabase/client';
@@ -39,6 +38,7 @@ import {
 import { CalendarIcon, FileDown, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
+import { DateRange } from 'react-day-picker';
 
 const CHART_COLORS = [
   '#4f46e5', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444',
@@ -48,10 +48,7 @@ const CHART_COLORS = [
 const Reports = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [dateRange, setDateRange] = useState<{
-    from: Date | undefined;
-    to: Date | undefined;
-  }>({
+  const [dateRange, setDateRange] = useState<DateRange>({
     from: undefined,
     to: undefined,
   });
@@ -599,3 +596,4 @@ const Reports = () => {
 };
 
 export default Reports;
+
