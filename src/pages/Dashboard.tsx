@@ -1,11 +1,11 @@
 
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import DashboardContent from "@/components/dashboard/DashboardContent";
+import { Loader2 } from "lucide-react";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -45,8 +45,11 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cloudflow-blue-600"></div>
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-cloudflow-blue-50 to-white">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-12 w-12 text-cloudflow-blue-500 animate-spin" />
+          <p className="text-cloudflow-gray-600 font-medium">Loading your dashboard...</p>
+        </div>
       </div>
     );
   }
