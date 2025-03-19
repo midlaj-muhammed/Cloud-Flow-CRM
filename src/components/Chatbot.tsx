@@ -21,7 +21,7 @@ const Chatbot = () => {
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([{
     role: 'assistant',
-    content: 'Hi! I\'m SalesGPT, your AI sales assistant. How can I help you today?',
+    content: 'Hi! I\'m CloudGPT, your AI assistant. How can I help you with your CRM tasks today?',
     timestamp: new Date()
   }]);
   const [isOpen, setIsOpen] = useState(false);
@@ -75,7 +75,8 @@ const Chatbot = () => {
         throw new Error('Authentication token not found');
       }
       
-      const response = await fetch(`${window.location.origin}/functions/v1/chat`, {
+      // Call our new chat-ai edge function
+      const response = await fetch(`${window.location.origin}/functions/v1/chat-ai`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -143,7 +144,7 @@ const Chatbot = () => {
       {isOpen && (
         <Card className="fixed bottom-4 right-4 w-80 sm:w-96 h-[500px] shadow-xl flex flex-col z-50">
           <CardHeader className="p-3 border-b flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-sm font-medium">Sales Assistant</CardTitle>
+            <CardTitle className="text-sm font-medium">CloudGPT Assistant</CardTitle>
             <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
               <X className="h-4 w-4" />
             </Button>
@@ -169,7 +170,7 @@ const Chatbot = () => {
                           <AvatarFallback>AI</AvatarFallback>
                           <AvatarImage src="/placeholder.svg" />
                         </Avatar>
-                        <span className="text-xs font-medium">SalesGPT</span>
+                        <span className="text-xs font-medium">CloudGPT</span>
                       </div>
                     )}
                     <div className="text-sm whitespace-pre-wrap">{message.content}</div>
