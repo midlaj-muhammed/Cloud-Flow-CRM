@@ -407,7 +407,7 @@ const SalesPipeline = () => {
                         <SelectValue placeholder="Select a contact" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">No contact</SelectItem>
+                        <SelectItem value="none">No contact</SelectItem>
                         {contacts.map(contact => (
                           <SelectItem key={contact.id} value={contact.id}>
                             {contact.first_name} {contact.last_name} {contact.company ? `(${contact.company})` : ''}
@@ -631,7 +631,7 @@ const SalesPipeline = () => {
                       <SelectValue placeholder="Select a contact" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No contact</SelectItem>
+                      <SelectItem value="none">No contact</SelectItem>
                       {contacts.map(contact => (
                         <SelectItem key={contact.id} value={contact.id}>
                           {contact.first_name} {contact.last_name} {contact.company ? `(${contact.company})` : ''}

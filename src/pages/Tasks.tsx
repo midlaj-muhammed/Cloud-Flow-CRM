@@ -62,14 +62,12 @@ const Tasks = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPriority, setFilterPriority] = useState('all');
   
-  // Form state
   const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
   const [isEditTaskOpen, setIsEditTaskOpen] = useState(false);
   const [isDeleteTaskOpen, setIsDeleteTaskOpen] = useState(false);
   const [currentTask, setCurrentTask] = useState<any>(null);
   const [date, setDate] = useState<Date>();
   
-  // Task form state
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -463,7 +461,7 @@ const Tasks = () => {
                           <SelectValue placeholder="Select a contact" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">No contact</SelectItem>
+                          <SelectItem value="none">No contact</SelectItem>
                           {contacts.map(contact => (
                             <SelectItem key={contact.id} value={contact.id}>
                               {contact.first_name} {contact.last_name} {contact.company ? `(${contact.company})` : ''}
@@ -483,7 +481,7 @@ const Tasks = () => {
                           <SelectValue placeholder="Select a deal" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">No deal</SelectItem>
+                          <SelectItem value="none">No deal</SelectItem>
                           {deals.map(deal => (
                             <SelectItem key={deal.id} value={deal.id}>
                               {deal.name}
@@ -669,7 +667,6 @@ const Tasks = () => {
           </CardContent>
         </Card>
         
-        {/* Edit Dialog */}
         <Dialog open={isEditTaskOpen} onOpenChange={setIsEditTaskOpen}>
           <DialogContent className="sm:max-w-[525px]">
             <DialogHeader>
@@ -711,7 +708,7 @@ const Tasks = () => {
                       <SelectValue placeholder="Select a contact" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No contact</SelectItem>
+                      <SelectItem value="none">No contact</SelectItem>
                       {contacts.map(contact => (
                         <SelectItem key={contact.id} value={contact.id}>
                           {contact.first_name} {contact.last_name} {contact.company ? `(${contact.company})` : ''}
@@ -731,7 +728,7 @@ const Tasks = () => {
                       <SelectValue placeholder="Select a deal" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No deal</SelectItem>
+                      <SelectItem value="none">No deal</SelectItem>
                       {deals.map(deal => (
                         <SelectItem key={deal.id} value={deal.id}>
                           {deal.name}
@@ -810,7 +807,6 @@ const Tasks = () => {
           </DialogContent>
         </Dialog>
         
-        {/* Delete Dialog */}
         <Dialog open={isDeleteTaskOpen} onOpenChange={setIsDeleteTaskOpen}>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
