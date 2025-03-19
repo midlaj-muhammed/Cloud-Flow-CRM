@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -75,25 +74,17 @@ const Chatbot = () => {
         throw new Error('Authentication token not found');
       }
       
-      // Call our new chat-ai edge function
-      const response = await fetch(`${window.location.origin}/functions/v1/chat-ai`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
+      // Use the correct endpoint URL - note we're using the Supabase functions invoke method here
+      const { data, error } = await supabase.functions.invoke('chat-ai', {
+        body: {
           message: userMessage,
           history: messageHistory
-        })
+        }
       });
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to get response from assistant');
+      if (error) {
+        throw new Error(error.message || 'Failed to get response from assistant');
       }
-      
-      const data = await response.json();
       
       const botMessage: Message = {
         role: 'assistant',
@@ -106,9 +97,9 @@ const Chatbot = () => {
     } catch (error: any) {
       console.error('Error sending message:', error);
       toast({
-        title: 'Error',
+        title: "Error",
         description: error.message || 'Failed to get a response. Please try again.',
-        variant: 'destructive'
+        variant: "destructive"
       });
       
       // Add error message to chat
