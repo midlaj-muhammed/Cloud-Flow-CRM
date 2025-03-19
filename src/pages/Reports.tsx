@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { supabase } from '@/integrations/supabase/client';
@@ -54,6 +55,7 @@ const Reports = () => {
   });
   const [timeFilter, setTimeFilter] = useState('month');
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('sales');
   
   // Report data states
   const [pipelineData, setPipelineData] = useState<any[]>([]);
@@ -202,11 +204,75 @@ const Reports = () => {
   };
   
   const handleExport = () => {
-    toast({
-      title: "Export initiated",
-      description: "Your report is being exported to CSV"
-    });
-    // In a real app, this would handle exporting the data to CSV/Excel
+    try {
+      let csvContent = '';
+      let filename = '';
+      
+      // Prepare the CSV content based on active tab
+      if (activeTab === 'sales') {
+        // Export sales trend data
+        filename = 'sales_trend_report.csv';
+        
+        // Add header row
+        csvContent = 'Month,Value\n';
+        
+        // Add data rows
+        salesTrendData.forEach(item => {
+          csvContent += `${item.name},${item.value}\n`;
+        });
+      } else if (activeTab === 'pipeline') {
+        // Export pipeline data
+        filename = 'pipeline_report.csv';
+        
+        // Add header row
+        csvContent = 'Stage,Deal Count,Deal Value\n';
+        
+        // Add data rows
+        pipelineData.forEach(item => {
+          csvContent += `${item.name},${item.deals},${item.value}\n`;
+        });
+      } else if (activeTab === 'tasks') {
+        // Export task data
+        filename = 'task_completion_report.csv';
+        
+        // Add header row
+        csvContent = 'Status,Count\n';
+        
+        // Add data rows
+        taskCompletionData.forEach(item => {
+          csvContent += `${item.name},${item.value}\n`;
+        });
+      }
+      
+      // Create a Blob with the CSV content
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      
+      // Create a download link
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      // Set link properties
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      link.style.visibility = 'hidden';
+      
+      // Add to document, trigger download and clean up
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast({
+        title: "Export successful",
+        description: `Data exported to ${filename}`
+      });
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      toast({
+        title: "Export failed",
+        description: "There was an error exporting the data",
+        variant: "destructive"
+      });
+    }
   };
   
   return (
@@ -273,7 +339,7 @@ const Reports = () => {
             
             <Button variant="outline" onClick={handleExport}>
               <FileDown className="mr-2 h-4 w-4" />
-              Export
+              Export CSV
             </Button>
           </div>
         </div>
@@ -283,7 +349,7 @@ const Reports = () => {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cloudflow-blue-600"></div>
           </div>
         ) : (
-          <Tabs defaultValue="sales" className="space-y-4">
+          <Tabs defaultValue="sales" className="space-y-4" value={activeTab} onValueChange={setActiveTab}>
             <TabsList>
               <TabsTrigger value="sales">Sales Performance</TabsTrigger>
               <TabsTrigger value="pipeline">Pipeline Analysis</TabsTrigger>
@@ -596,4 +662,3 @@ const Reports = () => {
 };
 
 export default Reports;
-
