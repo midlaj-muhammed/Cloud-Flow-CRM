@@ -21,7 +21,6 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer,
   Cell
 } from 'recharts';
 import {
@@ -36,14 +35,45 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon, FileDown, RefreshCw } from 'lucide-react';
+import { 
+  CalendarIcon, 
+  FileDown, 
+  RefreshCw, 
+  BarChart3, 
+  LineChart as LineChartIcon,
+  PieChart as PieChartIcon,
+  Info,
+  Filter 
+} from 'lucide-react';
 import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { DateRange } from 'react-day-picker';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent
+} from '@/components/ui/chart';
 
+// Enhanced color palette for better visual distinction and aesthetics
 const CHART_COLORS = [
-  '#4f46e5', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444',
-  '#3b82f6', '#ec4899', '#14b8a6', '#f97316', '#6366f1'
+  '#8B5CF6', // Primary purple
+  '#10b981', // Green
+  '#f97316', // Orange
+  '#3b82f6', // Blue
+  '#ef4444', // Red
+  '#6366f1', // Indigo
+  '#ec4899', // Pink
+  '#14b8a6', // Teal
+  '#f59e0b', // Amber
+  '#d946ef'  // Fuchsia
 ];
 
 const Reports = () => {
@@ -203,45 +233,93 @@ const Reports = () => {
     }).format(value);
   };
   
+  const getPeriodLabel = () => {
+    switch(timeFilter) {
+      case 'week': return 'This Week';
+      case 'month': return 'This Month';
+      case 'quarter': return 'This Quarter';
+      case 'year': return 'This Year';
+      case 'custom': return dateRange.from && dateRange.to ? 
+        `${format(dateRange.from, "MMM dd, yyyy")} - ${format(dateRange.to, "MMM dd, yyyy")}` : 
+        'Custom Range';
+      default: return 'This Month';
+    }
+  };
+  
   const handleExport = () => {
     try {
       let csvContent = '';
       let filename = '';
+      const periodLabel = getPeriodLabel();
+      const dateStamp = format(new Date(), "yyyy-MM-dd");
       
       // Prepare the CSV content based on active tab
       if (activeTab === 'sales') {
         // Export sales trend data
-        filename = 'sales_trend_report.csv';
+        filename = `sales_trend_report_${dateStamp}.csv`;
+        
+        // Add metadata header
+        csvContent = `Sales Trend Report\n`;
+        csvContent += `Period: ${periodLabel}\n`;
+        csvContent += `Generated: ${format(new Date(), "MMMM dd, yyyy HH:mm")}\n\n`;
         
         // Add header row
-        csvContent = 'Month,Value\n';
+        csvContent += 'Month,Value\n';
         
         // Add data rows
         salesTrendData.forEach(item => {
           csvContent += `${item.name},${item.value}\n`;
         });
+        
+        // Add summary
+        const totalSales = salesTrendData.reduce((sum, item) => sum + item.value, 0);
+        csvContent += `\nTotal,${totalSales}\n`;
+        csvContent += `Average,${Math.round(totalSales / salesTrendData.length)}\n`;
+        
       } else if (activeTab === 'pipeline') {
         // Export pipeline data
-        filename = 'pipeline_report.csv';
+        filename = `pipeline_report_${dateStamp}.csv`;
+        
+        // Add metadata header
+        csvContent = `Pipeline Report\n`;
+        csvContent += `Period: ${periodLabel}\n`;
+        csvContent += `Generated: ${format(new Date(), "MMMM dd, yyyy HH:mm")}\n\n`;
         
         // Add header row
-        csvContent = 'Stage,Deal Count,Deal Value\n';
+        csvContent += 'Stage,Deal Count,Deal Value (USD)\n';
         
         // Add data rows
         pipelineData.forEach(item => {
           csvContent += `${item.name},${item.deals},${item.value}\n`;
         });
+        
+        // Add summary
+        const totalCount = pipelineData.reduce((sum, item) => sum + item.deals, 0);
+        const totalValue = pipelineData.reduce((sum, item) => sum + item.value, 0);
+        csvContent += `\nTotal,${totalCount},${totalValue}\n`;
+        
       } else if (activeTab === 'tasks') {
         // Export task data
-        filename = 'task_completion_report.csv';
+        filename = `task_completion_report_${dateStamp}.csv`;
+        
+        // Add metadata header
+        csvContent = `Task Completion Report\n`;
+        csvContent += `Period: ${periodLabel}\n`;
+        csvContent += `Generated: ${format(new Date(), "MMMM dd, yyyy HH:mm")}\n\n`;
         
         // Add header row
-        csvContent = 'Status,Count\n';
+        csvContent += 'Status,Count\n';
         
         // Add data rows
         taskCompletionData.forEach(item => {
           csvContent += `${item.name},${item.value}\n`;
         });
+        
+        // Add summary
+        const totalTasks = taskCompletionData.reduce((sum, item) => sum + item.value, 0);
+        const completionRate = taskCompletionData.find(t => t.name === 'Completed')?.value || 0;
+        csvContent += `\nTotal Tasks,${totalTasks}\n`;
+        csvContent += `Completion Rate,${Math.round((completionRate / totalTasks) * 100)}%\n`;
       }
       
       // Create a Blob with the CSV content
@@ -263,7 +341,7 @@ const Reports = () => {
       
       toast({
         title: "Export successful",
-        description: `Data exported to ${filename}`
+        description: `Report exported to ${filename}`
       });
     } catch (error) {
       console.error('Error exporting data:', error);
@@ -275,386 +353,676 @@ const Reports = () => {
     }
   };
   
+  const getChartConfig = () => {
+    return {
+      sales: {
+        color: "#8B5CF6"
+      },
+      won: {
+        color: "#10b981" 
+      },
+      lost: {
+        color: "#ef4444"
+      },
+      open: {
+        color: "#f97316"
+      },
+      completed: {
+        color: "#10b981"
+      },
+      "in progress": {
+        color: "#f59e0b"
+      },
+      pending: {
+        color: "#ef4444"
+      },
+      value: {
+        color: "#8B5CF6" 
+      },
+      deals: {
+        color: "#10b981"
+      }
+    };
+  };
+  
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <h1 className="text-2xl font-bold tracking-tight">Reports</h1>
-          
-          <div className="flex items-center space-x-2 w-full sm:w-auto">
-            <Select
-              value={timeFilter}
-              onValueChange={setTimeFilter}
-            >
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Select period" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="week">This Week</SelectItem>
-                <SelectItem value="month">This Month</SelectItem>
-                <SelectItem value="quarter">This Quarter</SelectItem>
-                <SelectItem value="year">This Year</SelectItem>
-                <SelectItem value="custom">Custom Range</SelectItem>
-              </SelectContent>
-            </Select>
+        <div className="bg-gradient-to-r from-purple-100 to-blue-100 dark:from-slate-800 dark:to-slate-700 p-6 rounded-lg shadow-sm mb-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-purple-900 dark:text-white">Reports & Analytics</h1>
+              <p className="text-purple-700 dark:text-purple-300 mt-1">Visualize your business performance with detailed analytics</p>
+            </div>
             
-            {timeFilter === 'custom' && (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={"outline"}
-                    className="w-auto justify-start text-left font-normal"
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateRange.from ? (
-                      dateRange.to ? (
-                        <>
-                          {format(dateRange.from, "LLL dd, y")} -{" "}
-                          {format(dateRange.to, "LLL dd, y")}
-                        </>
-                      ) : (
-                        format(dateRange.from, "LLL dd, y")
-                      )
-                    ) : (
-                      <span>Pick a date range</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    initialFocus
-                    mode="range"
-                    defaultMonth={dateRange.from}
-                    selected={dateRange}
-                    onSelect={setDateRange}
-                    numberOfMonths={2}
-                  />
-                </PopoverContent>
-              </Popover>
-            )}
-            
-            <Button variant="outline" size="icon" onClick={fetchReportData}>
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-            
-            <Button variant="outline" onClick={handleExport}>
-              <FileDown className="mr-2 h-4 w-4" />
-              Export CSV
-            </Button>
+            <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 space-x-0 sm:space-x-2 w-full sm:w-auto">
+              <div className="flex items-center space-x-2 w-full sm:w-auto">
+                <Select
+                  value={timeFilter}
+                  onValueChange={setTimeFilter}
+                >
+                  <SelectTrigger className="w-[140px] bg-white dark:bg-slate-800">
+                    <SelectValue placeholder="Select period" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="week">This Week</SelectItem>
+                    <SelectItem value="month">This Month</SelectItem>
+                    <SelectItem value="quarter">This Quarter</SelectItem>
+                    <SelectItem value="year">This Year</SelectItem>
+                    <SelectItem value="custom">Custom Range</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                {timeFilter === 'custom' && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={"outline"}
+                        className="w-auto justify-start text-left font-normal bg-white dark:bg-slate-800"
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dateRange.from ? (
+                          dateRange.to ? (
+                            <>
+                              {format(dateRange.from, "LLL dd, y")} -{" "}
+                              {format(dateRange.to, "LLL dd, y")}
+                            </>
+                          ) : (
+                            format(dateRange.from, "LLL dd, y")
+                          )
+                        ) : (
+                          <span>Pick a date range</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        initialFocus
+                        mode="range"
+                        defaultMonth={dateRange.from}
+                        selected={dateRange}
+                        onSelect={setDateRange}
+                        numberOfMonths={2}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                )}
+              </div>
+              
+              <div className="flex items-center space-x-2 w-full sm:w-auto">
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  onClick={fetchReportData}
+                  className="bg-white dark:bg-slate-800"
+                  title="Refresh data"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  onClick={handleExport}
+                  className="bg-white dark:bg-slate-800"
+                >
+                  <FileDown className="mr-2 h-4 w-4" />
+                  Export
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
         
         {isLoading ? (
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cloudflow-blue-600"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
           </div>
         ) : (
-          <Tabs defaultValue="sales" className="space-y-4" value={activeTab} onValueChange={setActiveTab}>
-            <TabsList>
-              <TabsTrigger value="sales">Sales Performance</TabsTrigger>
-              <TabsTrigger value="pipeline">Pipeline Analysis</TabsTrigger>
-              <TabsTrigger value="tasks">Task Analytics</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="sales" className="space-y-4">
-              <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Sales Trend
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart
-                        data={salesTrendData}
-                        margin={{
-                          top: 5,
-                          right: 30,
-                          left: 20,
-                          bottom: 5,
-                        }}
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6">
+            <Tabs defaultValue="sales" className="space-y-6" value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid w-full grid-cols-3 mb-4">
+                <TabsTrigger value="sales" className="flex items-center gap-2">
+                  <LineChartIcon className="h-4 w-4" />
+                  <span>Sales Performance</span>
+                </TabsTrigger>
+                <TabsTrigger value="pipeline" className="flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4" />
+                  <span>Pipeline Analysis</span>
+                </TabsTrigger>
+                <TabsTrigger value="tasks" className="flex items-center gap-2">
+                  <PieChartIcon className="h-4 w-4" />
+                  <span>Task Analytics</span>
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="sales" className="space-y-6">
+                <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                  <Card className="overflow-hidden border-none shadow-md">
+                    <CardHeader className="pb-2 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-slate-700 dark:to-slate-800">
+                      <CardTitle className="text-sm font-medium flex items-center justify-between">
+                        <span>Sales Trend</span>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-6 w-6">
+                              <Info className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-80">
+                            <div className="space-y-2">
+                              <h4 className="font-medium">Sales Trend</h4>
+                              <p className="text-sm text-muted-foreground">
+                                Monthly sales performance over time. The chart shows revenue trends 
+                                and helps identify seasonal patterns.
+                              </p>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="h-[300px] pt-6">
+                      <ChartContainer 
+                        config={getChartConfig()}
+                        className="h-[280px]"
                       >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
-                        <Line
-                          type="monotone"
-                          dataKey="value"
-                          stroke="#4f46e5"
-                          activeDot={{ r: 8 }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Conversion Rate
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={conversionData}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                          nameKey="name"
-                          label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        <LineChart
+                          data={salesTrendData}
+                          margin={{
+                            top: 5,
+                            right: 30,
+                            left: 20,
+                            bottom: 5,
+                          }}
                         >
-                          {conversionData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip formatter={(value) => [`${value} deals`, 'Count']} />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-                
-                <Card className="md:col-span-2 lg:col-span-1">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Top Deals
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {topDealsData.length > 0 ? (
-                        <div className="space-y-2">
-                          {topDealsData.map((deal, index) => (
-                            <div key={index} className="flex justify-between items-center p-2 border rounded">
-                              <div>
-                                <div className="font-medium">{deal.name}</div>
-                                <div className="text-sm text-gray-500">
-                                  {formatStageName(deal.stage)}
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" />
+                          <YAxis />
+                          <ChartTooltip
+                            content={
+                              <ChartTooltipContent 
+                                formatter={(value) => [`$${value.toLocaleString()}`, 'Revenue']}
+                              />
+                            }
+                          />
+                          <Legend />
+                          <Line
+                            type="monotone"
+                            dataKey="value"
+                            stroke="#8B5CF6"
+                            activeDot={{ r: 8 }}
+                            name="Sales"
+                          />
+                        </LineChart>
+                      </ChartContainer>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="overflow-hidden border-none shadow-md">
+                    <CardHeader className="pb-2 bg-gradient-to-r from-green-50 to-blue-50 dark:from-slate-700 dark:to-slate-800">
+                      <CardTitle className="text-sm font-medium flex items-center justify-between">
+                        <span>Conversion Rate</span>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-6 w-6">
+                              <Info className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-80">
+                            <div className="space-y-2">
+                              <h4 className="font-medium">Deal Conversion</h4>
+                              <p className="text-sm text-muted-foreground">
+                                Distribution of deals by outcome (Won, Lost, Open). 
+                                This chart helps track your sales effectiveness.
+                              </p>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="h-[300px] pt-6">
+                      <ChartContainer 
+                        config={getChartConfig()}
+                        className="h-[280px]"
+                      >
+                        <PieChart>
+                          <Pie
+                            data={conversionData}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            outerRadius={80}
+                            fill="#8884d8"
+                            dataKey="value"
+                            nameKey="name"
+                            label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                          >
+                            {conversionData.map((entry, index) => (
+                              <Cell 
+                                key={`cell-${index}`} 
+                                fill={
+                                  entry.name === 'Won' ? "#10b981" : 
+                                  entry.name === 'Lost' ? "#ef4444" : 
+                                  "#f97316"
+                                } 
+                              />
+                            ))}
+                          </Pie>
+                          <ChartTooltip
+                            content={
+                              <ChartTooltipContent 
+                                formatter={(value) => [`${value} deals`, 'Count']}
+                              />
+                            }
+                          />
+                          <Legend />
+                        </PieChart>
+                      </ChartContainer>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="md:col-span-2 lg:col-span-1 overflow-hidden border-none shadow-md">
+                    <CardHeader className="pb-2 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-slate-700 dark:to-slate-800">
+                      <CardTitle className="text-sm font-medium flex items-center justify-between">
+                        <span>Top Deals</span>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-6 w-6">
+                              <Info className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-80">
+                            <div className="space-y-2">
+                              <h4 className="font-medium">Top Value Deals</h4>
+                              <p className="text-sm text-muted-foreground">
+                                Highest value opportunities in your pipeline.
+                                Focus on these deals to maximize revenue.
+                              </p>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-4">
+                      <div className="space-y-4">
+                        {topDealsData.length > 0 ? (
+                          <div className="space-y-3">
+                            {topDealsData.map((deal, index) => (
+                              <div 
+                                key={index} 
+                                className="flex justify-between items-center p-3 rounded-lg
+                                  bg-gradient-to-r from-orange-50 to-amber-50 
+                                  dark:from-slate-800 dark:to-slate-700
+                                  hover:from-orange-100 hover:to-amber-100
+                                  dark:hover:from-slate-700 dark:hover:to-slate-600
+                                  transition-colors"
+                              >
+                                <div>
+                                  <div className="font-medium">{deal.name}</div>
+                                  <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                    <span className={`w-2 h-2 rounded-full ${
+                                      deal.stage === 'closed_won' ? 'bg-green-500' : 
+                                      deal.stage === 'closed_lost' ? 'bg-red-500' : 
+                                      'bg-orange-500'
+                                    }`}></span>
+                                    {formatStageName(deal.stage)}
+                                  </div>
+                                </div>
+                                <div className="text-right font-semibold text-green-600 dark:text-green-400">
+                                  {formatCurrency(deal.value)}
                                 </div>
                               </div>
-                              <div className="text-right font-semibold text-green-600">
-                                {formatCurrency(deal.value)}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-center p-4 text-gray-500">
-                          No deals data available
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="pipeline" className="space-y-4">
-              <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Pipeline Value by Stage
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="h-[350px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={pipelineData}
-                        margin={{
-                          top: 20,
-                          right: 30,
-                          left: 20,
-                          bottom: 5,
-                        }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
-                        <YAxis />
-                        <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Value']} />
-                        <Legend />
-                        <Bar dataKey="value" fill="#4f46e5" name="Value" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Deal Count by Stage
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="h-[350px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={pipelineData}
-                        margin={{
-                          top: 20,
-                          right: 30,
-                          left: 20,
-                          bottom: 5,
-                        }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
-                        <Bar dataKey="deals" fill="#10b981" name="Deal Count" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-                
-                <Card className="lg:col-span-2">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Pipeline Analysis
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="h-[350px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart
-                        data={pipelineData}
-                        margin={{
-                          top: 10,
-                          right: 30,
-                          left: 0,
-                          bottom: 0,
-                        }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
-                        <YAxis yAxisId="left" orientation="left" stroke="#4f46e5" />
-                        <YAxis yAxisId="right" orientation="right" stroke="#10b981" />
-                        <Tooltip />
-                        <Legend />
-                        <Area
-                          yAxisId="left"
-                          type="monotone"
-                          dataKey="value"
-                          stroke="#4f46e5"
-                          fill="#4f46e522"
-                          name="Value ($)"
-                        />
-                        <Area
-                          yAxisId="right"
-                          type="monotone"
-                          dataKey="deals"
-                          stroke="#10b981"
-                          fill="#10b98122"
-                          name="Deal Count"
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="tasks" className="space-y-4">
-              <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Task Completion Status
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="h-[350px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={taskCompletionData}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                          nameKey="name"
-                          label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                        >
-                          {taskCompletionData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={
-                              entry.name === 'Completed' ? '#10b981' : 
-                              entry.name === 'In Progress' ? '#f59e0b' : 
-                              '#ef4444'
-                            } />
-                          ))}
-                        </Pie>
-                        <Tooltip formatter={(value) => [`${value} tasks`, 'Count']} />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Task Stats Summary
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 gap-4">
-                        {taskCompletionData.map((task, index) => (
-                          <div key={index} className="flex justify-between items-center p-4 border rounded">
-                            <div className="font-medium">{task.name}</div>
-                            <div className="flex items-center space-x-2">
-                              <div className="text-right font-semibold">
-                                {task.value} tasks
-                              </div>
-                              <div 
-                                className={`w-3 h-3 rounded-full ${
-                                  task.name === 'Completed' ? 'bg-green-500' : 
-                                  task.name === 'In Progress' ? 'bg-amber-500' : 
-                                  'bg-red-500'
-                                }`}
-                              />
-                            </div>
+                            ))}
                           </div>
-                        ))}
+                        ) : (
+                          <div className="text-center p-8 text-gray-500 bg-gray-50 dark:bg-slate-700 rounded-lg">
+                            <p>No deals data available</p>
+                            <Button 
+                              variant="outline" 
+                              className="mt-2"
+                              onClick={fetchReportData}
+                            >
+                              <RefreshCw className="mr-2 h-4 w-4" />
+                              Refresh
+                            </Button>
+                          </div>
+                        )}
                       </div>
-                      
-                      <div className="pt-4">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-sm font-medium">Overall Completion Rate</span>
-                          <span className="text-sm font-medium">
-                            {taskCompletionData.length > 0 ? 
-                              `${Math.round((taskCompletionData.find(t => t.name === 'Completed')?.value || 0) / 
-                              taskCompletionData.reduce((acc, curr) => acc + curr.value, 0) * 100)}%` : 
-                              '0%'
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="pipeline" className="space-y-6">
+                <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
+                  <Card className="overflow-hidden border-none shadow-md">
+                    <CardHeader className="pb-2 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-slate-700 dark:to-slate-800">
+                      <CardTitle className="text-sm font-medium flex items-center justify-between">
+                        <span>Pipeline Value by Stage</span>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-6 w-6">
+                              <Info className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-80">
+                            <div className="space-y-2">
+                              <h4 className="font-medium">Pipeline Value</h4>
+                              <p className="text-sm text-muted-foreground">
+                                Total value of deals at each stage in your sales pipeline.
+                                Identify which stages hold the most value.
+                              </p>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="h-[350px] pt-6">
+                      <ChartContainer 
+                        config={getChartConfig()}
+                        className="h-[330px]"
+                      >
+                        <BarChart
+                          data={pipelineData}
+                          margin={{
+                            top: 20,
+                            right: 30,
+                            left: 20,
+                            bottom: 5,
+                          }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" />
+                          <YAxis />
+                          <ChartTooltip
+                            content={
+                              <ChartTooltipContent 
+                                formatter={(value) => [formatCurrency(Number(value)), 'Value']}
+                              />
                             }
-                          </span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-green-500 h-2 rounded-full" 
-                            style={{ 
-                              width: `${taskCompletionData.length > 0 ? 
-                                Math.round((taskCompletionData.find(t => t.name === 'Completed')?.value || 0) / 
-                                taskCompletionData.reduce((acc, curr) => acc + curr.value, 0) * 100) : 
-                                0}%` 
-                            }}
                           />
+                          <Legend />
+                          <Bar dataKey="value" fill="#8B5CF6" name="Value" />
+                        </BarChart>
+                      </ChartContainer>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="overflow-hidden border-none shadow-md">
+                    <CardHeader className="pb-2 bg-gradient-to-r from-green-50 to-teal-50 dark:from-slate-700 dark:to-slate-800">
+                      <CardTitle className="text-sm font-medium flex items-center justify-between">
+                        <span>Deal Count by Stage</span>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-6 w-6">
+                              <Info className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-80">
+                            <div className="space-y-2">
+                              <h4 className="font-medium">Deal Count</h4>
+                              <p className="text-sm text-muted-foreground">
+                                Number of deals at each stage in your sales pipeline.
+                                Identify bottlenecks in your sales process.
+                              </p>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="h-[350px] pt-6">
+                      <ChartContainer 
+                        config={getChartConfig()}
+                        className="h-[330px]"
+                      >
+                        <BarChart
+                          data={pipelineData}
+                          margin={{
+                            top: 20,
+                            right: 30,
+                            left: 20,
+                            bottom: 5,
+                          }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" />
+                          <YAxis />
+                          <ChartTooltip
+                            content={<ChartTooltipContent />}
+                          />
+                          <Legend />
+                          <Bar dataKey="deals" fill="#10b981" name="Deal Count" />
+                        </BarChart>
+                      </ChartContainer>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="lg:col-span-2 overflow-hidden border-none shadow-md">
+                    <CardHeader className="pb-2 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-slate-700 dark:to-slate-800">
+                      <CardTitle className="text-sm font-medium flex items-center justify-between">
+                        <span>Pipeline Analysis</span>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-6 w-6">
+                              <Info className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-80">
+                            <div className="space-y-2">
+                              <h4 className="font-medium">Combined Analysis</h4>
+                              <p className="text-sm text-muted-foreground">
+                                Comprehensive view of both deal value and count across stages.
+                                Compare the relationship between number of deals and their total value.
+                              </p>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="h-[350px] pt-6">
+                      <ChartContainer 
+                        config={getChartConfig()}
+                        className="h-[330px]"
+                      >
+                        <AreaChart
+                          data={pipelineData}
+                          margin={{
+                            top: 10,
+                            right: 30,
+                            left: 0,
+                            bottom: 0,
+                          }}
+                        >
+                          <defs>
+                            <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.8}/>
+                              <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.2}/>
+                            </linearGradient>
+                            <linearGradient id="colorDeals" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
+                              <stop offset="95%" stopColor="#10b981" stopOpacity={0.2}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" />
+                          <YAxis yAxisId="left" orientation="left" stroke="#8B5CF6" />
+                          <YAxis yAxisId="right" orientation="right" stroke="#10b981" />
+                          <ChartTooltip
+                            content={<ChartTooltipContent />}
+                          />
+                          <Legend />
+                          <Area
+                            yAxisId="left"
+                            type="monotone"
+                            dataKey="value"
+                            stroke="#8B5CF6"
+                            fillOpacity={1}
+                            fill="url(#colorValue)"
+                            name="Value ($)"
+                          />
+                          <Area
+                            yAxisId="right"
+                            type="monotone"
+                            dataKey="deals"
+                            stroke="#10b981"
+                            fillOpacity={1}
+                            fill="url(#colorDeals)"
+                            name="Deal Count"
+                          />
+                        </AreaChart>
+                      </ChartContainer>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="tasks" className="space-y-6">
+                <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
+                  <Card className="overflow-hidden border-none shadow-md">
+                    <CardHeader className="pb-2 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-slate-700 dark:to-slate-800">
+                      <CardTitle className="text-sm font-medium flex items-center justify-between">
+                        <span>Task Completion Status</span>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-6 w-6">
+                              <Info className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-80">
+                            <div className="space-y-2">
+                              <h4 className="font-medium">Task Status</h4>
+                              <p className="text-sm text-muted-foreground">
+                                Distribution of tasks by status (Completed, In Progress, Pending).
+                                Track your team's efficiency and workload.
+                              </p>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="h-[350px] pt-6">
+                      <ChartContainer 
+                        config={getChartConfig()}
+                        className="h-[330px]"
+                      >
+                        <PieChart>
+                          <Pie
+                            data={taskCompletionData}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            outerRadius={80}
+                            fill="#8884d8"
+                            dataKey="value"
+                            nameKey="name"
+                            label={({name, percent}) => `${(percent * 100).toFixed(0)}%`}
+                          >
+                            {taskCompletionData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={
+                                entry.name === 'Completed' ? '#10b981' : 
+                                entry.name === 'In Progress' ? '#f59e0b' : 
+                                '#ef4444'
+                              } />
+                            ))}
+                          </Pie>
+                          <ChartTooltip
+                            content={
+                              <ChartTooltipContent 
+                                formatter={(value) => [`${value} tasks`, 'Count']}
+                              />
+                            }
+                          />
+                          <Legend />
+                        </PieChart>
+                      </ChartContainer>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="overflow-hidden border-none shadow-md">
+                    <CardHeader className="pb-2 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-slate-700 dark:to-slate-800">
+                      <CardTitle className="text-sm font-medium flex items-center justify-between">
+                        <span>Task Stats Summary</span>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-6 w-6">
+                              <Info className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-80">
+                            <div className="space-y-2">
+                              <h4 className="font-medium">Task Statistics</h4>
+                              <p className="text-sm text-muted-foreground">
+                                Detailed breakdown of tasks by status with completion rate.
+                                Monitor productivity and identify areas for improvement.
+                              </p>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-6">
+                      <div className="space-y-6">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Status</TableHead>
+                              <TableHead>Count</TableHead>
+                              <TableHead>Percentage</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {taskCompletionData.map((task, index) => {
+                              const total = taskCompletionData.reduce((acc, curr) => acc + curr.value, 0);
+                              const percentage = total ? Math.round((task.value / total) * 100) : 0;
+                              
+                              return (
+                                <TableRow key={index}>
+                                  <TableCell className="font-medium flex items-center gap-2">
+                                    <div 
+                                      className={`w-3 h-3 rounded-full ${
+                                        task.name === 'Completed' ? 'bg-green-500' : 
+                                        task.name === 'In Progress' ? 'bg-amber-500' : 
+                                        'bg-red-500'
+                                      }`}
+                                    />
+                                    {task.name}
+                                  </TableCell>
+                                  <TableCell>{task.value}</TableCell>
+                                  <TableCell>{percentage}%</TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                        
+                        <div className="pt-2">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-sm font-medium">Overall Completion Rate</span>
+                            <span className="text-sm font-medium">
+                              {taskCompletionData.length > 0 ? 
+                                `${Math.round((taskCompletionData.find(t => t.name === 'Completed')?.value || 0) / 
+                                taskCompletionData.reduce((acc, curr) => acc + curr.value, 0) * 100)}%` : 
+                                '0%'
+                              }
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                            <div 
+                              className="bg-green-500 h-2 rounded-full" 
+                              style={{ 
+                                width: `${taskCompletionData.length > 0 ? 
+                                  Math.round((taskCompletionData.find(t => t.name === 'Completed')?.value || 0) / 
+                                  taskCompletionData.reduce((acc, curr) => acc + curr.value, 0) * 100) : 
+                                  0}%` 
+                              }}
+                            />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-          </Tabs>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
         )}
       </div>
     </DashboardLayout>
