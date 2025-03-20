@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
@@ -435,7 +436,8 @@ const DashboardContent = ({ profile }: DashboardContentProps) => {
                     <TooltipContent>
                       <p>Distribution of deals by stage</p>
                     </TooltipContent>
-                  </TooltipProvider>
+                  </Tooltip>
+                </TooltipProvider>
               </CardHeader>
               <CardContent>
                 <div className="h-64 flex items-center justify-center mt-4">
@@ -703,4 +705,42 @@ const DashboardContent = ({ profile }: DashboardContentProps) => {
                           { name: 'Direct', value: 35, fill: '#9b87f5' },
                           { name: 'Referral', value: 25, fill: '#7E69AB' },
                           { name: 'Organic', value: 20, fill: '#0EA5E9' },
-                          { name: 'Social', value: 15
+                          { name: 'Social', value: 15, fill: '#F97316' },
+                          { name: 'Other', value: 5, fill: '#10B981' }
+                        ]}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                        nameKey="name"
+                        animationDuration={1500}
+                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      >
+                        {COLORS.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <RechartsTooltip 
+                        formatter={(value: number, name: string) => [`${value}%`, name]}
+                        contentStyle={{ 
+                          backgroundColor: 'white', 
+                          borderRadius: '8px',
+                          border: '1px solid #e2e8f0',
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+};
+
+export default DashboardContent;
