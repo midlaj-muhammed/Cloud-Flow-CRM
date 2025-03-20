@@ -17,6 +17,16 @@ export type ChartConfig = {
   )
 }
 
+// Define a more complete Payload type that includes fill property
+type ExtendedPayload = RechartsPrimitive.Payload<any, any> & {
+  fill?: string;
+  color?: string;
+  payload?: {
+    fill?: string;
+    [key: string]: any;
+  };
+}
+
 type ChartContextProps = {
   config: ChartConfig
 }
@@ -189,9 +199,10 @@ const ChartTooltipContent = React.forwardRef<
           {payload.map((item, index) => {
             const key = `${nameKey || item.name || item.dataKey || "value"}`
             const itemConfig = getPayloadConfigFromPayload(config, item, key)
+            const extendedItem = item as ExtendedPayload
             const indicatorColor = colorful 
-              ? item.fill || item.color || (item.payload && typeof item.payload === 'object' ? (item.payload as any).fill : undefined)
-              : color || (item.payload && typeof item.payload === 'object' ? (item.payload as any).fill : undefined) || item.color
+              ? extendedItem.fill || extendedItem.color || (extendedItem.payload?.fill)
+              : color || (extendedItem.payload?.fill) || extendedItem.color
 
             return (
               <div
