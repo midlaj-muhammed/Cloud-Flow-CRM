@@ -1,5 +1,6 @@
 
 import { StarIcon } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const testimonials = [
   {
@@ -28,6 +29,30 @@ const testimonials = [
   },
 ];
 
+// Company logos with their names
+const companyLogos = [
+  { 
+    name: "Dropbox", 
+    logo: "https://cdn.worldvectorlogo.com/logos/dropbox-1.svg" 
+  },
+  { 
+    name: "Slack", 
+    logo: "https://cdn.worldvectorlogo.com/logos/slack-new-logo.svg" 
+  },
+  { 
+    name: "Shopify", 
+    logo: "https://cdn.worldvectorlogo.com/logos/shopify.svg" 
+  },
+  { 
+    name: "Spotify", 
+    logo: "https://cdn.worldvectorlogo.com/logos/spotify-2.svg" 
+  },
+  { 
+    name: "Airbnb", 
+    logo: "https://cdn.worldvectorlogo.com/logos/airbnb.svg" 
+  },
+];
+
 const TestimonialsSection = () => {
   return (
     <section className="py-20 bg-white">
@@ -45,7 +70,7 @@ const TestimonialsSection = () => {
           {testimonials.map((testimonial, index) => (
             <div 
               key={index}
-              className="bg-white rounded-xl shadow-md transition-all duration-300 hover:shadow-lg border border-cloudflow-gray-100 p-6"
+              className="bg-white rounded-xl shadow-md transition-all duration-300 hover:shadow-lg border border-cloudflow-gray-100 p-6 hover:translate-y-[-4px]"
             >
               <div className="flex items-center space-x-1 mb-4">
                 {[...Array(testimonial.rating)].map((_, i) => (
@@ -59,11 +84,10 @@ const TestimonialsSection = () => {
               <p className="text-cloudflow-gray-600 mb-6 italic">"{testimonial.content}"</p>
               
               <div className="flex items-center">
-                <img 
-                  src={testimonial.image} 
-                  alt={testimonial.name}
-                  className="h-12 w-12 rounded-full object-cover" 
-                />
+                <Avatar>
+                  <AvatarImage src={testimonial.image} alt={testimonial.name} />
+                  <AvatarFallback>{testimonial.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                </Avatar>
                 <div className="ml-4">
                   <h4 className="font-semibold text-cloudflow-gray-900">{testimonial.name}</h4>
                   <p className="text-sm text-cloudflow-gray-600">{testimonial.role}, {testimonial.company}</p>
@@ -74,16 +98,24 @@ const TestimonialsSection = () => {
         </div>
         
         <div className="mt-16 pt-8 border-t border-cloudflow-gray-200">
-          <div className="text-center mb-8">
-            <h3 className="text-xl font-semibold text-cloudflow-gray-800">
+          <div className="text-center mb-10">
+            <h3 className="text-xl font-semibold text-cloudflow-gray-800 mb-2">
               Trusted by innovative companies
             </h3>
+            <p className="text-cloudflow-gray-500 max-w-2xl mx-auto">
+              Join thousands of leading organizations who trust Cloud Flow for their customer relationship management
+            </p>
           </div>
           
           <div className="flex flex-wrap justify-center items-center gap-x-12 gap-y-8">
-            {[1, 2, 3, 4, 5].map((num) => (
-              <div key={num} className="h-12">
-                <div className="h-full w-32 bg-cloudflow-gray-200 rounded-md opacity-50"></div>
+            {companyLogos.map((company, index) => (
+              <div key={index} className="h-12 flex flex-col items-center">
+                <img 
+                  src={company.logo} 
+                  alt={company.name} 
+                  className="h-10 object-contain opacity-70 hover:opacity-100 transition-opacity duration-300" 
+                />
+                <span className="text-xs text-cloudflow-gray-500 mt-2">{company.name}</span>
               </div>
             ))}
           </div>

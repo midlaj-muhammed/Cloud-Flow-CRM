@@ -28,14 +28,18 @@ const HeroSection = () => {
             </div>
           </div>
           <div className="w-full lg:w-1/2 px-4">
-            <div className="relative mx-auto max-w-md">
+            <div className="relative mx-auto max-w-md md:max-w-lg lg:max-w-xl">
               <img
-                className="relative rounded-lg shadow-2xl border border-gray-200"
-                src="https://cdn.dribbble.com/userupload/3650051/file/original-1a3b19a08ab22ec93bdb3ef6e1ee98e0.png?compress=1&resize=1200x900"
-                alt="CRM Dashboard"
+                className="relative rounded-xl shadow-2xl border border-gray-200"
+                src="https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?q=80&w=2940&auto=format&fit=crop"
+                alt="Cloud Flow CRM Dashboard"
               />
-              <div className="absolute -top-4 -left-4 w-24 h-24 bg-blue-500 rounded-lg opacity-50 blur-xl"></div>
-              <div className="absolute -bottom-4 -right-4 w-40 h-40 bg-purple-500 rounded-full opacity-50 blur-xl"></div>
+              <div className="absolute -top-6 -left-6 w-32 h-32 bg-blue-500 rounded-full opacity-20 blur-xl animate-pulse"></div>
+              <div className="absolute -bottom-6 -right-6 w-48 h-48 bg-purple-500 rounded-full opacity-20 blur-xl animate-float"></div>
+              
+              {/* Add floating elements for more visual interest */}
+              <div className="absolute top-1/4 right-0 translate-x-1/4 w-16 h-16 bg-cloudflow-teal-500 rounded-lg opacity-20 blur-md animate-float"></div>
+              <div className="absolute bottom-1/3 left-0 -translate-x-1/4 w-12 h-12 bg-cloudflow-blue-600 rounded-lg opacity-30 blur-md animate-float" style={{ animationDelay: "2s" }}></div>
             </div>
           </div>
         </div>
