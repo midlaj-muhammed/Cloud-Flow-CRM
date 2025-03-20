@@ -1,4 +1,3 @@
-
 import * as React from "react"
 import * as RechartsPrimitive from "recharts"
 
@@ -17,8 +16,11 @@ export type ChartConfig = {
   )
 }
 
-// Define a more complete Payload type that includes fill property
-type ExtendedPayload = RechartsPrimitive.Payload<any, any> & {
+// Define a more complete Payload type manually
+type ExtendedPayload = {
+  value?: any;
+  name?: string;
+  dataKey?: string;
   fill?: string;
   color?: string;
   payload?: {
