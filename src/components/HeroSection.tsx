@@ -31,7 +31,7 @@ const HeroSection = () => {
             <div className="relative mx-auto max-w-md md:max-w-lg lg:max-w-xl">
               <img
                 className="relative rounded-xl shadow-2xl border border-gray-200"
-                src="https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?q=80&w=2940&auto=format&fit=crop"
+                src="https://images.unsplash.com/photo-1531297484001-80022131f5a1?q=80&w=2940&auto=format&fit=crop"
                 alt="Cloud Flow CRM Dashboard"
               />
               <div className="absolute -top-6 -left-6 w-32 h-32 bg-blue-500 rounded-full opacity-20 blur-xl animate-pulse"></div>
