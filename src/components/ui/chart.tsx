@@ -1,3 +1,4 @@
+
 import * as React from "react"
 import * as RechartsPrimitive from "recharts"
 
@@ -109,6 +110,7 @@ const ChartTooltipContent = React.forwardRef<
       indicator?: "line" | "dot" | "dashed"
       nameKey?: string
       labelKey?: string
+      colorful?: boolean
     }
 >(
   (
@@ -126,6 +128,7 @@ const ChartTooltipContent = React.forwardRef<
       color,
       nameKey,
       labelKey,
+      colorful = false,
     },
     ref
   ) => {
@@ -186,7 +189,7 @@ const ChartTooltipContent = React.forwardRef<
           {payload.map((item, index) => {
             const key = `${nameKey || item.name || item.dataKey || "value"}`
             const itemConfig = getPayloadConfigFromPayload(config, item, key)
-            const indicatorColor = color || item.payload.fill || item.color
+            const indicatorColor = colorful ? item.fill || item.color : color || item.payload.fill || item.color
 
             return (
               <div
@@ -236,9 +239,11 @@ const ChartTooltipContent = React.forwardRef<
                           {itemConfig?.label || item.name}
                         </span>
                       </div>
-                      {item.value && (
+                      {item.value !== undefined && (
                         <span className="font-mono font-medium tabular-nums text-foreground">
-                          {item.value.toLocaleString()}
+                          {typeof item.value === 'number' 
+                            ? item.value.toLocaleString() 
+                            : item.value}
                         </span>
                       )}
                     </div>
@@ -262,10 +267,11 @@ const ChartLegendContent = React.forwardRef<
     Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign"> & {
       hideIcon?: boolean
       nameKey?: string
+      colorful?: boolean
     }
 >(
   (
-    { className, hideIcon = false, payload, verticalAlign = "bottom", nameKey },
+    { className, hideIcon = false, payload, verticalAlign = "bottom", nameKey, colorful = false },
     ref
   ) => {
     const { config } = useChart()
@@ -300,11 +306,11 @@ const ChartLegendContent = React.forwardRef<
                 <div
                   className="h-2 w-2 shrink-0 rounded-[2px]"
                   style={{
-                    backgroundColor: item.color,
+                    backgroundColor: colorful ? item.color : item.color,
                   }}
                 />
               )}
-              {itemConfig?.label}
+              {itemConfig?.label || item.value}
             </div>
           )
         })}
