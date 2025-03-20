@@ -408,7 +408,6 @@ const DashboardContent = ({ profile }: DashboardContentProps) => {
                         fill="#7E69AB" 
                         radius={[4, 4, 0, 0]}
                         animationDuration={1500}
-                        animationDelay={300}
                       />
                       <Bar 
                         dataKey="target" 
@@ -416,7 +415,6 @@ const DashboardContent = ({ profile }: DashboardContentProps) => {
                         fill="#D6BCFA" 
                         radius={[4, 4, 0, 0]}
                         animationDuration={1500}
-                        animationDelay={600}
                       />
                     </BarChart>
                   </ResponsiveContainer>
@@ -437,8 +435,7 @@ const DashboardContent = ({ profile }: DashboardContentProps) => {
                     <TooltipContent>
                       <p>Distribution of deals by stage</p>
                     </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                  </TooltipProvider>
               </CardHeader>
               <CardContent>
                 <div className="h-64 flex items-center justify-center mt-4">
@@ -706,146 +703,4 @@ const DashboardContent = ({ profile }: DashboardContentProps) => {
                           { name: 'Direct', value: 35, fill: '#9b87f5' },
                           { name: 'Referral', value: 25, fill: '#7E69AB' },
                           { name: 'Organic', value: 20, fill: '#0EA5E9' },
-                          { name: 'Social', value: 15, fill: '#F97316' },
-                          { name: 'Other', value: 5, fill: '#10B981' }
-                        ]}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      >
-                        {COLORS.map((color, index) => (
-                          <Cell key={`cell-${index}`} fill={color} />
-                        ))}
-                      </Pie>
-                      <RechartsTooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border border-cloudflow-gray-200">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Performance vs Target</CardTitle>
-                  <Target className="h-5 w-5 text-[#9b87f5]" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RechartsLineChart
-                      data={[
-                        { name: 'Jan', target: 20000, actual: 18000 },
-                        { name: 'Feb', target: 22000, actual: 21000 },
-                        { name: 'Mar', target: 25000, actual: 28000 },
-                        { name: 'Apr', target: 27000, actual: 26000 },
-                        { name: 'May', target: 30000, actual: 32000 },
-                        { name: 'Jun', target: 35000, actual: 37000 }
-                      ]}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis tickFormatter={(value) => `$${value/1000}k`} />
-                      <RechartsTooltip 
-                        formatter={(value: number) => formatCurrency(value)} 
-                        contentStyle={{ 
-                          backgroundColor: 'white', 
-                          borderRadius: '8px',
-                          border: '1px solid #e2e8f0'
-                        }}
-                      />
-                      <Legend verticalAlign="top" height={36} />
-                      <Line 
-                        type="monotone" 
-                        dataKey="target" 
-                        stroke="#7E69AB" 
-                        strokeWidth={2} 
-                        name="Target"
-                        dot={{ r: 4, fill: '#7E69AB' }}
-                        activeDot={{ r: 6, fill: '#7E69AB' }}
-                        animationDuration={1500}
-                      />
-                      <Line 
-                        type="monotone" 
-                        dataKey="actual" 
-                        stroke="#9b87f5" 
-                        strokeWidth={2} 
-                        name="Actual"
-                        dot={{ r: 4, fill: '#9b87f5' }}
-                        activeDot={{ r: 6, fill: '#9b87f5' }}
-                        animationDuration={1500}
-                        animationDelay={300}
-                      />
-                    </RechartsLineChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <Card className="border border-cloudflow-gray-200">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Sales Funnel Analysis</CardTitle>
-                <LineChart className="h-5 w-5 text-[#9b87f5]" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    layout="vertical"
-                    data={[
-                      { name: 'Leads', value: 120, fill: '#9b87f5' },
-                      { name: 'Qualified', value: 80, fill: '#7E69AB' },
-                      { name: 'Proposal', value: 60, fill: '#0EA5E9' },
-                      { name: 'Negotiation', value: 40, fill: '#F97316' },
-                      { name: 'Closed Won', value: 25, fill: '#10B981' }
-                    ]}
-                    margin={{ top: 20, right: 30, left: 80, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                    <XAxis type="number" tickFormatter={(value) => value.toString()} />
-                    <YAxis dataKey="name" type="category" />
-                    <RechartsTooltip 
-                      formatter={(value: number) => [`${value} deals`, 'Count']}
-                      contentStyle={{ 
-                        backgroundColor: 'white', 
-                        borderRadius: '8px',
-                        border: '1px solid #e2e8f0'
-                      }}
-                    />
-                    <Bar 
-                      dataKey="value" 
-                      fill="#9b87f5" 
-                      radius={[0, 4, 4, 0]}
-                      animationDuration={1500}
-                    >
-                      {[
-                        { dataKey: 'value', fill: '#9b87f5' },
-                        { dataKey: 'value', fill: '#7E69AB' },
-                        { dataKey: 'value', fill: '#0EA5E9' },
-                        { dataKey: 'value', fill: '#F97316' },
-                        { dataKey: 'value', fill: '#10B981' }
-                      ].map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
-};
-
-export default DashboardContent;
+                          { name: 'Social', value: 15
