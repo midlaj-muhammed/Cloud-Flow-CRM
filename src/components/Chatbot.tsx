@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -5,9 +6,10 @@ import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { X, Send, MessageSquare, Loader2 } from 'lucide-react';
+import { X, Send, MessageSquare, Loader2, Bot } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 
 type Message = {
   role: 'user' | 'assistant' | 'system';
@@ -20,7 +22,7 @@ const Chatbot = () => {
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([{
     role: 'assistant',
-    content: 'Hi! I\'m CloudGPT, your AI assistant. How can I help you with your CRM tasks today?',
+    content: 'Hi! I\'m CloudGPT, your free AI assistant. How can I help you with your CRM tasks today?',
     timestamp: new Date()
   }]);
   const [isOpen, setIsOpen] = useState(false);
@@ -135,7 +137,12 @@ const Chatbot = () => {
       {isOpen && (
         <Card className="fixed bottom-4 right-4 w-80 sm:w-96 h-[500px] shadow-xl flex flex-col z-50">
           <CardHeader className="p-3 border-b flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-sm font-medium">CloudGPT Assistant</CardTitle>
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-sm font-medium">CloudGPT Assistant</CardTitle>
+              <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                Free
+              </Badge>
+            </div>
             <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
               <X className="h-4 w-4" />
             </Button>

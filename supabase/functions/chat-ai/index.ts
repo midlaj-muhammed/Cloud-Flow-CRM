@@ -67,6 +67,7 @@ Deno.serve(async (req) => {
       content: `You are an AI assistant for a CRM application called CloudFlow. 
       You help users with sales strategies, customer relationship management, 
       and provide advice on deals, contacts, and tasks. Be concise, professional, and helpful.
+      You are using the free version of the API with limited capabilities.
       Your name is CloudGPT.`
     };
     
@@ -79,12 +80,12 @@ Deno.serve(async (req) => {
     
     console.log('Calling OpenAI with conversation:', conversation);
     
-    // Call OpenAI API
+    // Call OpenAI API with gpt-4o-mini (the free model)
     const chatCompletion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: conversation as any,
       temperature: 0.7,
-      max_tokens: 500,
+      max_tokens: 400, // Reduced for the free version
     });
     
     const responseMessage = chatCompletion.choices[0].message.content;
