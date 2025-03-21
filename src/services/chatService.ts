@@ -20,16 +20,31 @@ export const sendChatMessage = async (userMessage: string, messageHistory: Messa
     .filter(msg => msg.role !== 'system')
     .map(msg => ({ role: msg.role, content: msg.content }));
   
-  const { data, error } = await supabase.functions.invoke('chat-ai', {
-    body: {
-      message: userMessage,
-      history: apiMessageHistory
+  try {
+    const { data, error } = await supabase.functions.invoke('chat-ai', {
+      body: {
+        message: userMessage,
+        history: apiMessageHistory
+      }
+    });
+    
+    if (error) {
+      // Check for quota exceeded error
+      if (error.message && error.message.includes('429')) {
+        throw new Error('AI service quota exceeded. Please try again later.');
+      }
+      throw new Error(error.message || 'Failed to get response from assistant');
     }
-  });
-  
-  if (error) {
-    throw new Error(error.message || 'Failed to get response from assistant');
+    
+    return data;
+  } catch (error: any) {
+    // Check if the error might be related to quota limits
+    if (error.message && (error.message.includes('429') || error.message.includes('quota'))) {
+      throw new Error('AI service quota exceeded. Please try again later.');
+    }
+    
+    // Handle other errors
+    console.error('Chat API error:', error);
+    throw error;
   }
-  
-  return data;
 };

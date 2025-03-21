@@ -22,6 +22,7 @@ const Chatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [apiUnavailable, setApiUnavailable] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
@@ -60,21 +61,35 @@ const Chatbot = () => {
       };
       
       setMessages(prev => [...prev, botMessage]);
+      setApiUnavailable(false);
       
     } catch (error: any) {
       console.error('Error sending message:', error);
-      toast({
-        title: "Error",
-        description: error.message || 'Failed to get a response. Please try again.',
-        variant: "destructive"
-      });
+      
+      // Check if it's a quota exceeded error
+      if (error.message && (error.message.includes('quota') || error.message.includes('429'))) {
+        setApiUnavailable(true);
+        toast({
+          title: "Service Unavailable",
+          description: "Our AI service is currently unavailable due to high demand. Please try again later.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: error.message || 'Failed to get a response. Please try again.',
+          variant: "destructive"
+        });
+      }
       
       // Add error message to chat
       setMessages(prev => [
         ...prev,
         {
           role: 'assistant',
-          content: 'Sorry, I encountered an error. Please try again later.',
+          content: error.message && error.message.includes('quota') 
+            ? 'Sorry, our AI service is currently unavailable due to high demand. Please try again later.'
+            : 'Sorry, I encountered an error. Please try again later.',
           timestamp: new Date()
         }
       ]);
@@ -97,7 +112,7 @@ const Chatbot = () => {
       {/* Chat interface */}
       {isOpen && (
         <Card className="fixed bottom-4 right-4 w-80 sm:w-96 h-[500px] shadow-xl flex flex-col z-50">
-          <ChatHeader onClose={() => setIsOpen(false)} />
+          <ChatHeader onClose={() => setIsOpen(false)} apiUnavailable={apiUnavailable} />
           
           <CardContent className="flex-1 p-0">
             <ScrollArea className="h-full p-4">
@@ -126,7 +141,7 @@ const Chatbot = () => {
               onChange={setInputValue}
               onSend={handleSendMessage}
               isLoading={isLoading}
-              isDisabled={!user}
+              isDisabled={!user || apiUnavailable}
               autoFocus={isOpen}
             />
           </CardFooter>
