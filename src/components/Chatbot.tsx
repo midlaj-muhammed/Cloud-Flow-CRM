@@ -1,21 +1,15 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { MessageSquare } from 'lucide-react';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { X, Send, MessageSquare, Loader2, Bot } from 'lucide-react';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-
-type Message = {
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-  timestamp?: Date;
-};
+import { ChatHeader } from './chat/ChatHeader';
+import { ChatMessage, Message } from './chat/ChatMessage';
+import { ChatInput } from './chat/ChatInput';
+import { sendChatMessage } from '@/services/chatService';
 
 const Chatbot = () => {
   const { user } = useAuth();
@@ -30,17 +24,10 @@ const Chatbot = () => {
   const [isLoading, setIsLoading] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
   
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-  
-  useEffect(() => {
-    if (isOpen && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [isOpen]);
   
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -64,29 +51,7 @@ const Chatbot = () => {
     setIsLoading(true);
     
     try {
-      // Filter out system messages for the API call
-      const messageHistory = messages
-        .filter(msg => msg.role !== 'system')
-        .map(msg => ({ role: msg.role, content: msg.content }));
-      
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-      
-      if (!token) {
-        throw new Error('Authentication token not found');
-      }
-      
-      // Use the correct endpoint URL - note we're using the Supabase functions invoke method here
-      const { data, error } = await supabase.functions.invoke('chat-ai', {
-        body: {
-          message: userMessage,
-          history: messageHistory
-        }
-      });
-      
-      if (error) {
-        throw new Error(error.message || 'Failed to get response from assistant');
-      }
+      const data = await sendChatMessage(userMessage, messages);
       
       const botMessage: Message = {
         role: 'assistant',
@@ -118,10 +83,6 @@ const Chatbot = () => {
     }
   };
   
-  const formatTimestamp = (timestamp: Date) => {
-    return timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-  
   return (
     <>
       {/* Floating chat button */}
@@ -136,84 +97,38 @@ const Chatbot = () => {
       {/* Chat interface */}
       {isOpen && (
         <Card className="fixed bottom-4 right-4 w-80 sm:w-96 h-[500px] shadow-xl flex flex-col z-50">
-          <CardHeader className="p-3 border-b flex flex-row items-center justify-between space-y-0">
-            <div className="flex items-center gap-2">
-              <CardTitle className="text-sm font-medium">CloudGPT Assistant</CardTitle>
-              <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                Free
-              </Badge>
-            </div>
-            <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
-              <X className="h-4 w-4" />
-            </Button>
-          </CardHeader>
+          <ChatHeader onClose={() => setIsOpen(false)} />
           
-          <ScrollArea className="flex-1 p-4">
-            <div className="space-y-4">
-              {messages.map((message, index) => (
-                <div
-                  key={index}
-                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div 
-                    className={`max-w-[80%] rounded-lg p-3 ${
-                      message.role === 'user' 
-                        ? 'bg-cloudflow-blue-500 text-white' 
-                        : 'bg-gray-100 dark:bg-gray-800'
-                    }`}
-                  >
-                    {message.role === 'assistant' && (
-                      <div className="flex items-center mb-1">
-                        <Avatar className="h-6 w-6 mr-2">
-                          <AvatarFallback>AI</AvatarFallback>
-                          <AvatarImage src="/placeholder.svg" />
-                        </Avatar>
-                        <span className="text-xs font-medium">CloudGPT</span>
-                      </div>
-                    )}
-                    <div className="text-sm whitespace-pre-wrap">{message.content}</div>
-                    {message.timestamp && (
-                      <div className={`text-xs mt-1 ${message.role === 'user' ? 'text-gray-200' : 'text-gray-500'}`}>
-                        {formatTimestamp(message.timestamp)}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-              {isLoading && (
-                <div className="flex justify-start">
-                  <div className="max-w-[80%] rounded-lg p-3 bg-gray-100 dark:bg-gray-800">
-                    <div className="flex items-center">
-                      <Avatar className="h-6 w-6 mr-2">
-                        <AvatarFallback>AI</AvatarFallback>
-                        <AvatarImage src="/placeholder.svg" />
-                      </Avatar>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    </div>
-                  </div>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-          </ScrollArea>
+          <CardContent className="flex-1 p-0">
+            <ScrollArea className="h-full p-4">
+              <div className="space-y-4">
+                {messages.map((message, index) => (
+                  <ChatMessage key={index} message={message} />
+                ))}
+                {isLoading && (
+                  <ChatMessage 
+                    message={{ 
+                      role: 'assistant', 
+                      content: '', 
+                      timestamp: new Date() 
+                    }} 
+                    isLoading={true} 
+                  />
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+            </ScrollArea>
+          </CardContent>
           
           <CardFooter className="p-3 border-t">
-            <form onSubmit={handleSendMessage} className="flex w-full gap-2">
-              <Input
-                ref={inputRef}
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                placeholder="Type your message..."
-                disabled={isLoading || !user}
-              />
-              <Button 
-                type="submit" 
-                size="icon" 
-                disabled={isLoading || !user || !inputValue.trim()}
-              >
-                <Send className="h-4 w-4" />
-              </Button>
-            </form>
+            <ChatInput
+              value={inputValue}
+              onChange={setInputValue}
+              onSend={handleSendMessage}
+              isLoading={isLoading}
+              isDisabled={!user}
+              autoFocus={isOpen}
+            />
           </CardFooter>
         </Card>
       )}
