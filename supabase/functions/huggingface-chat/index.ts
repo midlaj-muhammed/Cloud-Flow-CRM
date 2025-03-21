@@ -19,6 +19,7 @@ Deno.serve(async (req) => {
     const huggingFaceToken = Deno.env.get('HUGGING_FACE_ACCESS_TOKEN') || '';
     
     if (!huggingFaceToken) {
+      console.error('Hugging Face API token is missing');
       return new Response(
         JSON.stringify({ error: 'Hugging Face API token is required' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
@@ -30,6 +31,7 @@ Deno.serve(async (req) => {
     // Get auth user
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.error('Authorization header is missing');
       return new Response(
         JSON.stringify({ error: 'Authorization header is required' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
@@ -40,6 +42,7 @@ Deno.serve(async (req) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     
     if (userError || !user) {
+      console.error('Unauthorized user or error:', userError);
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
@@ -47,7 +50,10 @@ Deno.serve(async (req) => {
     }
     
     // Get the request body
-    const { message, history = [] } = await req.json() as RequestBody;
+    const requestData = await req.json();
+    const { message, history = [] } = requestData as RequestBody;
+    
+    console.log('Request received:', { userId: user.id, messageLength: message?.length, historyLength: history?.length });
     
     if (!message) {
       return new Response(
@@ -75,7 +81,7 @@ Deno.serve(async (req) => {
     
     // Call Hugging Face Inference API
     // Using a free conversational model - Mistral 7B Instruct
-    const response = await fetch('https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2', {
+    const huggingFaceResponse = await fetch('https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${huggingFaceToken}`,
@@ -92,22 +98,23 @@ Deno.serve(async (req) => {
       }),
     });
     
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Hugging Face API error:', errorText);
+    if (!huggingFaceResponse.ok) {
+      const errorStatus = huggingFaceResponse.status;
+      const errorText = await huggingFaceResponse.text();
+      console.error(`Hugging Face API error (${errorStatus}):`, errorText);
       
       // Handle rate limiting specifically
-      if (response.status === 429) {
+      if (errorStatus === 429) {
         return new Response(
           JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 429 }
         );
       }
       
-      throw new Error(`Hugging Face API error: ${response.status} ${errorText}`);
+      throw new Error(`Hugging Face API error: ${errorStatus} ${errorText}`);
     }
     
-    const data = await response.json();
+    const data = await huggingFaceResponse.json();
     
     // Extract the generated text
     let responseMessage = data[0]?.generated_text || "I couldn't generate a response. Please try again.";
@@ -131,9 +138,9 @@ Deno.serve(async (req) => {
     );
     
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error in edge function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error.message || 'An unexpected error occurred' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }

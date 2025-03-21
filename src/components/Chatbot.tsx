@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
@@ -51,7 +52,9 @@ const Chatbot = () => {
     setIsLoading(true);
     
     try {
+      console.log('Sending message to chat service...');
       const data = await sendChatMessage(userMessage, messages);
+      console.log('Received response from chat service:', data);
       
       const botMessage: Message = {
         role: 'assistant',
@@ -65,18 +68,32 @@ const Chatbot = () => {
     } catch (error: any) {
       console.error('Error sending message:', error);
       
-      // Check if it's a quota exceeded error
-      if (error.message && (error.message.includes('quota') || error.message.includes('429') || error.message.includes('rate limit'))) {
+      // Check if it's a quota exceeded error or connection issue
+      const errorMessage = error.message || 'An error occurred';
+      
+      if (errorMessage.includes('quota') || errorMessage.includes('429') || errorMessage.includes('rate limit')) {
         setApiUnavailable(true);
         toast({
           title: "Service Unavailable",
           description: "Our AI service is currently unavailable due to rate limits. Please try again later.",
           variant: "destructive"
         });
+      } else if (errorMessage.includes('Network issue') || errorMessage.includes('Failed to fetch')) {
+        toast({
+          title: "Connection Error",
+          description: "Could not connect to the AI service. Please check your connection and try again.",
+          variant: "destructive"
+        });
+      } else if (errorMessage.includes('timeout')) {
+        toast({
+          title: "Request Timeout",
+          description: "The AI service took too long to respond. Please try again later.",
+          variant: "destructive"
+        });
       } else {
         toast({
           title: "Error",
-          description: error.message || 'Failed to get a response. Please try again.',
+          description: errorMessage || 'Failed to get a response. Please try again.',
           variant: "destructive"
         });
       }
@@ -86,8 +103,10 @@ const Chatbot = () => {
         ...prev,
         {
           role: 'assistant',
-          content: error.message && (error.message.includes('quota') || error.message.includes('rate limit')) 
+          content: errorMessage.includes('quota') || errorMessage.includes('rate limit') || errorMessage.includes('429')
             ? 'Sorry, our AI service is currently unavailable due to rate limits. Please try again later.'
+            : errorMessage.includes('Network issue') || errorMessage.includes('Failed to fetch')
+            ? 'Sorry, I couldn\'t connect to the AI service. Please check your connection and try again.'
             : 'Sorry, I encountered an error. Please try again later.',
           timestamp: new Date()
         }
