@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
@@ -16,7 +15,7 @@ const Chatbot = () => {
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([{
     role: 'assistant',
-    content: 'Hi! I\'m CloudGPT, your free AI assistant. How can I help you with your CRM tasks today?',
+    content: 'Hi! I\'m CloudGPT, powered by Hugging Face. How can I help you with your CRM tasks today?',
     timestamp: new Date()
   }]);
   const [isOpen, setIsOpen] = useState(false);
@@ -67,11 +66,11 @@ const Chatbot = () => {
       console.error('Error sending message:', error);
       
       // Check if it's a quota exceeded error
-      if (error.message && (error.message.includes('quota') || error.message.includes('429'))) {
+      if (error.message && (error.message.includes('quota') || error.message.includes('429') || error.message.includes('rate limit'))) {
         setApiUnavailable(true);
         toast({
           title: "Service Unavailable",
-          description: "Our AI service is currently unavailable due to high demand. Please try again later.",
+          description: "Our AI service is currently unavailable due to rate limits. Please try again later.",
           variant: "destructive"
         });
       } else {
@@ -87,8 +86,8 @@ const Chatbot = () => {
         ...prev,
         {
           role: 'assistant',
-          content: error.message && error.message.includes('quota') 
-            ? 'Sorry, our AI service is currently unavailable due to high demand. Please try again later.'
+          content: error.message && (error.message.includes('quota') || error.message.includes('rate limit')) 
+            ? 'Sorry, our AI service is currently unavailable due to rate limits. Please try again later.'
             : 'Sorry, I encountered an error. Please try again later.',
           timestamp: new Date()
         }

@@ -19,7 +19,7 @@ export const ChatHeader = ({ onClose, apiUnavailable = false }: ChatHeaderProps)
           </Badge>
         ) : (
           <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-            Free
+            Hugging Face
           </Badge>
         )}
       </div>
