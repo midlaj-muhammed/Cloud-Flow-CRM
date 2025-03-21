@@ -1,6 +1,5 @@
 # Cloud-Flow-CRM
 
-![Cloud-Flow-CRM Logo](public/logo.png)
 
 A modern, cloud-based Customer Relationship Management (CRM) system built with cutting-edge technologies to streamline your business operations.
 
