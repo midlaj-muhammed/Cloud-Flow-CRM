@@ -1,69 +1,143 @@
-# Welcome to your Lovable project
+# Cloud-Flow-CRM
 
-## Project info
+![Cloud-Flow-CRM Logo](public/logo.png)
 
-**URL**: https://lovable.dev/projects/f41a67a9-5585-44cc-a534-a761b0c84b46
+A modern, cloud-based Customer Relationship Management (CRM) system built with cutting-edge technologies to streamline your business operations.
 
-## How can I edit this code?
+## 🌟 Features
 
-There are several ways of editing your application.
+- **Dashboard Analytics**
+  - Real-time business metrics
+  - Customizable widgets
+  - Performance tracking
+  - Sales forecasting
 
-**Use Lovable**
+- **Contact Management**
+  - Comprehensive customer profiles
+  - Contact history tracking
+  - Communication logs
+  - Custom fields support
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/f41a67a9-5585-44cc-a534-a761b0c84b46) and start prompting.
+- **Sales Pipeline**
+  - Visual deal tracking
+  - Stage management
+  - Revenue forecasting
+  - Deal analytics
 
-Changes made via Lovable will be committed automatically to this repo.
+- **Task Management**
+  - Task creation and assignment
+  - Due date tracking
+  - Priority management
+  - Team collaboration
 
-**Use your preferred IDE**
+- **Email Integration**
+  - Email tracking
+  - Template management
+  - Automated follow-ups
+  - Email analytics
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 🚀 Tech Stack
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+- **Frontend**
+  - React.js with TypeScript
+  - Tailwind CSS for styling
+  - shadcn/ui components
+  - Redux for state management
 
-Follow these steps:
+- **Backend**
+  - Node.js
+  - Express.js
+  - MongoDB
+  - JWT Authentication
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## 📋 Prerequisites
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+Before you begin, ensure you have the following installed:
+- Node.js (v18 or higher)
+- npm (v9 or higher)
+- MongoDB (v6 or higher)
 
-# Step 3: Install the necessary dependencies.
-npm i
+## 🛠️ Installation
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/Cloud-Flow-CRM.git
+   cd Cloud-Flow-CRM
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Create a `.env` file in the root directory:
+   ```env
+   MONGODB_URI=your_mongodb_connection_string
+   JWT_SECRET=your_jwt_secret
+   PORT=3000
+   ```
+
+4. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+## 🌐 Environment Variables
+
+The following environment variables are required:
+
+| Variable | Description |
+|----------|-------------|
+| `MONGODB_URI` | MongoDB connection string |
+| `JWT_SECRET` | Secret key for JWT token generation |
+| `PORT` | Port number for the server (default: 3000) |
+
+## 📦 Project Structure
+
+```
+Cloud-Flow-CRM/
+├── src/
+│   ├── components/      # React components
+│   ├── pages/          # Page components
+│   ├── api/            # API routes
+│   ├── hooks/          # Custom hooks
+│   ├── utils/          # Utility functions
+│   └── types/          # TypeScript types
+├── public/             # Static files
+├── tests/              # Test files
+└── docs/              # Documentation
 ```
 
-**Edit a file directly in GitHub**
+## 🔑 Authentication
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+The system uses JWT (JSON Web Tokens) for authentication. Each API request should include a Bearer token in the Authorization header:
 
-**Use GitHub Codespaces**
+```
+Authorization: Bearer <your_jwt_token>
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## 🤝 Contributing
 
-## What technologies are used for this project?
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-This project is built with .
+## 📝 License
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## How can I deploy this project?
+## 📧 Support
 
-Simply open [Lovable](https://lovable.dev/projects/f41a67a9-5585-44cc-a534-a761b0c84b46) and click on Share -> Publish.
+For support, email support@cloudflowcrm.com or join our Slack channel.
 
-## I want to use a custom domain - is that possible?
+## 🙏 Acknowledgments
 
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+- Thanks to all contributors who have helped shape Cloud-Flow-CRM
+- Special thanks to the open-source community
+- Icons provided by [Heroicons](https://heroicons.com)
+
+---
+
+Made with ❤️ by the Cloud-Flow-CRM Team
