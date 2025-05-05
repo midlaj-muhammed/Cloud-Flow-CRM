@@ -1,5 +1,6 @@
 
 import { Link } from "react-router-dom";
+import { HashLink } from "react-router-hash-link";
 import { Facebook, Twitter, Linkedin, Mail } from "lucide-react";
 
 const FooterSection = () => {
@@ -32,26 +33,32 @@ const FooterSection = () => {
               </a>
             </div>
           </div>
-          
+
           <div>
             <h3 className="text-lg font-semibold mb-6">Product</h3>
             <ul className="space-y-4">
               {[
-                { name: "Features", url: "#features" },
-                { name: "Pricing", url: "#pricing" },
-                { name: "Dashboard", url: "/dashboard" },
-                { name: "Mobile App", url: "#" },
-                { name: "Integrations", url: "#" }
+                { name: "Features", url: "/#features", isHash: true },
+                { name: "Pricing", url: "/#pricing", isHash: true },
+                { name: "Dashboard", url: "/dashboard", isHash: false },
+                { name: "Mobile App", url: "#", isHash: false },
+                { name: "Integrations", url: "#", isHash: false }
               ].map((item, i) => (
                 <li key={i}>
-                  <Link to={item.url} className="text-cloudflow-gray-400 hover:text-white transition-colors">
-                    {item.name}
-                  </Link>
+                  {item.isHash ? (
+                    <HashLink to={item.url} className="text-cloudflow-gray-400 hover:text-white transition-colors" smooth>
+                      {item.name}
+                    </HashLink>
+                  ) : (
+                    <Link to={item.url} className="text-cloudflow-gray-400 hover:text-white transition-colors">
+                      {item.name}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>
           </div>
-          
+
           <div>
             <h3 className="text-lg font-semibold mb-6">Company</h3>
             <ul className="space-y-4">
@@ -70,7 +77,7 @@ const FooterSection = () => {
               ))}
             </ul>
           </div>
-          
+
           <div>
             <h3 className="text-lg font-semibold mb-6">Support</h3>
             <ul className="space-y-4">
@@ -90,7 +97,7 @@ const FooterSection = () => {
             </ul>
           </div>
         </div>
-        
+
         <div className="border-t border-cloudflow-gray-800 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
           <p className="text-cloudflow-gray-400 text-sm mb-4 md:mb-0">
             &copy; 2025 Cloud Flow. All rights reserved.
